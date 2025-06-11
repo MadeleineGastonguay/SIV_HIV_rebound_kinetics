@@ -1,0 +1,109 @@
+﻿Study,Study Wk,Timing,id,Treatment,breadth_Gag,breadth_Env,breadth_Pol,breadth_Total,CD8_IFN_gamma,CD4_IFN_gamma
+2,50,Peak Immunity,5900,Control,1,1,1,3,,
+2,50,Peak Immunity,5901,Control,1,1,1,3,,
+2,50,Peak Immunity,5902,Control,1,1,1,3,,
+2,50,Peak Immunity,5903,Control,1,1,1,3,,
+2,50,Peak Immunity,5904,Control,1,1,1,3,,
+2,50,Peak Immunity,5905,Control,1,1,1,3,,
+2,50,Peak Immunity,5906,Control,1,1,1,3,,
+2,50,Peak Immunity,5907,Control,1,1,1,3,,
+2,50,Peak Immunity,5908,Control,1,1,1,3,,
+2,50,Peak Immunity,5891,TLR7,,,,,,
+2,50,Peak Immunity,5892,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5893,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5894,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5895,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5896,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5897,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5898,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5899,TLR7,1,1,1,3,,
+2,50,Peak Immunity,5872,Vac,3,1,2,6,,
+2,50,Peak Immunity,5873,Vac,3,2,2,7,,
+2,50,Peak Immunity,5874,Vac,2,3,0,5,,
+2,50,Peak Immunity,5875,Vac,11,22,22,55,,
+2,50,Peak Immunity,5876,Vac,4,4,2,10,,
+2,50,Peak Immunity,5877,Vac,8,5,5,18,,
+2,50,Peak Immunity,5879,Vac,13,20,23,56,,
+2,50,Peak Immunity,5880,Vac,5,6,7,18,,
+2,50,Peak Immunity,5881,Vac,6,6,2,14,,
+2,50,Peak Immunity,5882,Vac+TLR7,6,6,6,18,,
+2,50,Peak Immunity,5883,Vac+TLR7,4,7,5,16,,
+2,50,Peak Immunity,5884,Vac+TLR7,3,1,0,4,,
+2,50,Peak Immunity,5885,Vac+TLR7,,,,,,
+2,50,Peak Immunity,5886,Vac+TLR7,1,2,1,4,,
+2,50,Peak Immunity,5887,Vac+TLR7,4,2,1,7,,
+2,50,Peak Immunity,5888,Vac+TLR7,3,3,3,9,,
+2,50,Peak Immunity,5889,Vac+TLR7,6,4,3,13,,
+2,50,Peak Immunity,5890,Vac+TLR7,9,12,16,37,,
+2,72,ART interruption,5900,Control,2,1,0,3,,
+2,72,ART interruption,5901,Control,1,1,0,2,,
+2,72,ART interruption,5902,Control,2,0,2,4,,
+2,72,ART interruption,5903,Control,0,0,0,0,,
+2,72,ART interruption,5904,Control,1,0,0,1,,
+2,72,ART interruption,5905,Control,0,0,0,0,,
+2,72,ART interruption,5906,Control,1,0,0,1,,
+2,72,ART interruption,5907,Control,2,2,3,7,,
+2,72,ART interruption,5908,Control,0,0,0,0,,
+2,72,ART interruption,5891,TLR7,,,,,,
+2,72,ART interruption,5892,TLR7,1,2,3,6,,
+2,72,ART interruption,5893,TLR7,1,0,0,1,,
+2,72,ART interruption,5894,TLR7,0,0,0,0,,
+2,72,ART interruption,5895,TLR7,0,0,0,0,,
+2,72,ART interruption,5896,TLR7,0,0,0,0,,
+2,72,ART interruption,5897,TLR7,0,0,0,0,,
+2,72,ART interruption,5898,TLR7,1,0,0,1,,
+2,72,ART interruption,5899,TLR7,3,3,2,8,,
+2,72,ART interruption,5872,Vac,5,3,3,11,,
+2,72,ART interruption,5873,Vac,3,2,0,5,,
+2,72,ART interruption,5874,Vac,4,5,1,10,,
+2,72,ART interruption,5875,Vac,3,3,2,8,,
+2,72,ART interruption,5876,Vac,6,7,3,16,,
+2,72,ART interruption,5877,Vac,4,3,3,10,,
+2,72,ART interruption,5879,Vac,6,4,0,10,,
+2,72,ART interruption,5880,Vac,3,3,3,9,,
+2,72,ART interruption,5881,Vac,5,4,3,12,,
+2,72,ART interruption,5882,Vac+TLR7,5,3,3,11,,
+2,72,ART interruption,5883,Vac+TLR7,4,4,1,9,,
+2,72,ART interruption,5884,Vac+TLR7,7,6,12,25,,
+2,72,ART interruption,5885,Vac+TLR7,,,,,,
+2,72,ART interruption,5886,Vac+TLR7,5,7,3,15,,
+2,72,ART interruption,5887,Vac+TLR7,5,5,2,12,,
+2,72,ART interruption,5888,Vac+TLR7,6,4,6,16,,
+2,72,ART interruption,5889,Vac+TLR7,0,0,0,0,,
+2,72,ART interruption,5890,Vac+TLR7,9,9,8,26,,
+2,62,Post-vaccination,5900,Control,,,,,0.329,0.0186
+2,62,Post-vaccination,5901,Control,,,,,0.0254,0.126
+2,62,Post-vaccination,5902,Control,,,,,0.118,0.032
+2,62,Post-vaccination,5903,Control,,,,,0.0906,0.02
+2,62,Post-vaccination,5904,Control,,,,,0.117,0.0732
+2,62,Post-vaccination,5905,Control,,,,,0.0415,0.0121
+2,62,Post-vaccination,5906,Control,,,,,0.176,0.0322
+2,62,Post-vaccination,5907,Control,,,,,0.0277,0.0229
+2,62,Post-vaccination,5908,Control,,,,,0,0.0314
+2,62,Post-vaccination,5891,TLR7,,,,,,
+2,62,Post-vaccination,5892,TLR7,,,,,0.113,0.00823
+2,62,Post-vaccination,5893,TLR7,,,,,0.339,0.0762
+2,62,Post-vaccination,5894,TLR7,,,,,0.0972,0.0155
+2,62,Post-vaccination,5895,TLR7,,,,,0.018,0.0261
+2,62,Post-vaccination,5896,TLR7,,,,,0.203,0.0215
+2,62,Post-vaccination,5897,TLR7,,,,,0.0474,0.0222
+2,62,Post-vaccination,5898,TLR7,,,,,0.0337,0.0144
+2,62,Post-vaccination,5899,TLR7,,,,,0.0916,0.245
+2,62,Post-vaccination,5872,Vac,,,,,0.625,0.22
+2,62,Post-vaccination,5873,Vac,,,,,0.194,0.55
+2,62,Post-vaccination,5874,Vac,,,,,9.92,0.492
+2,62,Post-vaccination,5875,Vac,,,,,2.42,0.107
+2,62,Post-vaccination,5876,Vac,,,,,10,0.315
+2,62,Post-vaccination,5877,Vac,,,,,0.0374,0.565
+2,62,Post-vaccination,5879,Vac,,,,,0.766,0.402
+2,62,Post-vaccination,5880,Vac,,,,,5.75,0.392
+2,62,Post-vaccination,5881,Vac,,,,,1.19,0.482
+2,62,Post-vaccination,5882,Vac+TLR7,,,,,3.63,0.232
+2,62,Post-vaccination,5883,Vac+TLR7,,,,,4.61,0.116
+2,62,Post-vaccination,5884,Vac+TLR7,,,,,1.26,0.145
+2,62,Post-vaccination,5885,Vac+TLR7,,,,,,
+2,62,Post-vaccination,5886,Vac+TLR7,,,,,0.62,0.211
+2,62,Post-vaccination,5887,Vac+TLR7,,,,,0.91,0.445
+2,62,Post-vaccination,5888,Vac+TLR7,,,,,0.76,0.149
+2,62,Post-vaccination,5889,Vac+TLR7,,,,,0.0276,0.00828
+2,62,Post-vaccination,5890,Vac+TLR7,,,,,5.08,0.365
