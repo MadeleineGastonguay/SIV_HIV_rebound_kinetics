@@ -1,7 +1,7 @@
 <DATAFILE>
 
 [FILEINFO]
-file={path='../../../../../data/derived/STUDY1_CONTROL_DATA.txt'}
+file={path='../../data/derived/STUDY2_CONTROL_DATA.txt'}
 delimiter = tab
 header={id, time, vl, censor}
 
@@ -27,7 +27,7 @@ ta = {distribution=logNormal, typical=ta_pop, sd=omega_ta}
 [LONGITUDINAL]
 input = {a}
 
-file = '../../../../../model/2regime_model_delay.txt'
+file = '../../model/2regime_model_delay.txt'
 
 DEFINITION:
 vl = {distribution=normal, prediction=tot, errorModel=constant(a)}
@@ -37,19 +37,19 @@ data = 'vl'
 model = vl
 
 <PARAMETER>
-NPs_pop = {value=0.0756280698080145, method=MLE}
-a = {value=3.26836100686342, method=MLE}
-betas_pop = {value=0.0033578182387052, method=MLE}
-lambda_pop = {value=159.126370927393, method=MLE}
-m_pop = {value=9.21041168340653, method=MLE}
-omega_NPs = {value=2.09421865083277, method=MLE}
-omega_betas = {value=4.96118090767413, method=MLE}
-omega_lambda = {value=4.74672018736601, method=MLE}
-omega_m = {value=3.06633256189525, method=MLE}
-omega_p = {value=1.54533426184207, method=MLE}
-omega_ta = {value=4.63604534510523, method=MLE}
-p_pop = {value=0.834587539047303, method=MLE}
-ta_pop = {value=0.0105648850784497, method=MLE}
+NPs_pop = {value=1, method=MLE}
+a = {value=1, method=MLE}
+betas_pop = {value=1, method=MLE}
+lambda_pop = {value=1, method=MLE}
+m_pop = {value=1, method=MLE}
+omega_NPs = {value=1, method=MLE}
+omega_betas = {value=1, method=MLE}
+omega_lambda = {value=1, method=MLE}
+omega_m = {value=1, method=MLE}
+omega_p = {value=1, method=MLE}
+omega_ta = {value=1, method=MLE}
+p_pop = {value=1, method=MLE}
+ta_pop = {value=1, method=MLE}
 
 <MONOLIX>
 
@@ -65,7 +65,7 @@ plots = {indfits = {selected = true}, parameterdistribution = {selected = true},
 
 [SETTINGS]
 GLOBAL:
-exportpath = '../../'
+exportpath = 'IGS_no_cov'
 
 POPULATION:
 burniniterations = 50

@@ -1,6 +1,6 @@
 ********************************************************************************
 *                          IGS_no_cov.mlxtran                                  *
-*                          June 11, 2025 at 11:28:15                           *
+*                          June 11, 2025 at 11:59:23                           *
 *                          Monolix version : 2024R1                            *
 ********************************************************************************
 
@@ -8,28 +8,28 @@
 ESTIMATION OF THE POPULATION PARAMETERS ________________________________________
 
 Fixed Effects ----------------------------
-lambda_pop   :                        63.1
-betas_pop    :                        19.6
-ta_pop       :                        1.41
-NPs_pop      :                        6.97
-p_pop        :                        3.83
-m_pop        :                        9.58
+lambda_pop   :                        62.4
+betas_pop    :                        16.3
+ta_pop       :                       0.895
+NPs_pop      :                        4.62
+p_pop        :                         2.6
+m_pop        :                        13.8
 
 Standard Deviation of the Random Effects -
-omega_lambda :                       0.637
-omega_betas  :                       0.376
-omega_ta     :                        1.74
-omega_NPs    :                        1.45
-omega_p      :                       0.589
-omega_m      :                        3.93
+omega_lambda :                       0.922
+omega_betas  :                       0.811
+omega_ta     :                        1.63
+omega_NPs    :                        1.66
+omega_p      :                       0.384
+omega_m      :                        3.02
 
 Error Model Parameters -------------------
-a            :                       0.317
+a            :                         0.3
 
-Elapsed time (seconds):  2.6e+02
-CPU time     (seconds):  3.4e+02
-Exploratory phase iterations:      364 (Autostop)
-Smoothing phase iterations:        293 (Autostop)
+Elapsed time (seconds):  2.3e+02
+CPU time     (seconds):  3.1e+02
+Exploratory phase iterations:      354 (Autostop)
+Smoothing phase iterations:        238 (Autostop)
 
  _______________________________________________________________________________
 
