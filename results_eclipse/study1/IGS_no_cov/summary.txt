@@ -1,0 +1,35 @@
+********************************************************************************
+*                          IGS_no_cov.mlxtran                                  *
+*                          June 11, 2025 at 11:28:15                           *
+*                          Monolix version : 2024R1                            *
+********************************************************************************
+
+
+ESTIMATION OF THE POPULATION PARAMETERS ________________________________________
+
+Fixed Effects ----------------------------
+lambda_pop   :                        63.1
+betas_pop    :                        19.6
+ta_pop       :                        1.41
+NPs_pop      :                        6.97
+p_pop        :                        3.83
+m_pop        :                        9.58
+
+Standard Deviation of the Random Effects -
+omega_lambda :                       0.637
+omega_betas  :                       0.376
+omega_ta     :                        1.74
+omega_NPs    :                        1.45
+omega_p      :                       0.589
+omega_m      :                        3.93
+
+Error Model Parameters -------------------
+a            :                       0.317
+
+Elapsed time (seconds):  2.6e+02
+CPU time     (seconds):  3.4e+02
+Exploratory phase iterations:      364 (Autostop)
+Smoothing phase iterations:        293 (Autostop)
+
+ _______________________________________________________________________________
+
