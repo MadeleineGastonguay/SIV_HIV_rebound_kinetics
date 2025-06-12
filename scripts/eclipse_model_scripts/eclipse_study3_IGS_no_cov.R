@@ -93,6 +93,7 @@ if(RERUN){
   log10_tabestimates <- tabestimates
   log10_initialvalues <- initialvalues
   
+  
   # Initial guess sampling from a narrower range of values ####
   
   ## Calculate narrower ranges for IGS:
@@ -105,7 +106,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 100,
+    nits = 50,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1
@@ -131,17 +132,24 @@ if(RERUN){
 }
 
 # Visualize results from wide IGS ####
-## Look at parameter ranges from each step
-plot_parameter_ranges(initialValue_ranges, log10_tabestimates, p_threshold = 0.95)
 
 ## Color by "best" runs according to BICc
 runs <- calculate_BICw(log10_tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
-plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, color = runs,
-                     out_folder = out_folder, project_name = project_name, narrow = F)
+
+distinct(log10_tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs)) + geom_beeswarm()
+
+plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, remove_estimate_outliers = T,
+                     color = runs,
+                     out_folder = out_folder, project_name = project_name, narrow = F,
+                     file_addendum = "_log10")
+
+## Look at parameter ranges from each step
+plot_parameter_ranges(initialValue_ranges, log10_tabestimates, p_threshold = 0.95)
 
 ## Assess identifiability
 correlate_estimates(log10_tabestimates %>% filter(grepl("pop", parameter)), remove_bicc_outliers = T)
-compare_estimates(log10_tabestimates, remove_bicc_outliers = T)
+compare_estimates(log10_tabestimates, remove_bicc_outliers = T, remove_estimate_outliers = T)
 
 
 # Visualize results from narrow IGS ####
