@@ -1,0 +1,75 @@
+<DATAFILE>
+
+[FILEINFO]
+file={path='../../../../data/derived/STUDY3_CONTROL_DATA.txt'}
+delimiter = tab
+header={id, time, vl, censored}
+
+[CONTENT]
+id = {use=identifier}
+time = {use=time}
+vl = {use=observation, type=continuous}
+censored = {use=censored}
+
+<MODEL>
+
+[INDIVIDUAL]
+input = {NPs_pop, omega_NPs, betas_pop, omega_betas, lambda_pop, omega_lambda, m_pop, omega_m, p_pop, omega_p, ta_pop, omega_ta}
+
+DEFINITION:
+NPs = {distribution=logNormal, typical=NPs_pop, sd=omega_NPs}
+betas = {distribution=logNormal, typical=betas_pop, sd=omega_betas}
+lambda = {distribution=logNormal, typical=lambda_pop, sd=omega_lambda}
+m = {distribution=logNormal, typical=m_pop, sd=omega_m}
+p = {distribution=logNormal, typical=p_pop, sd=omega_p}
+ta = {distribution=logNormal, typical=ta_pop, sd=omega_ta}
+
+[LONGITUDINAL]
+input = {a}
+
+file = '../../../../model/2regime_model_delay.txt'
+
+DEFINITION:
+vl = {distribution=normal, prediction=tot, errorModel=constant(a)}
+
+<FIT>
+data = 'vl'
+model = vl
+
+<PARAMETER>
+NPs_pop = {value=0.46897276578001, method=MLE}
+a = {value=1, method=MLE}
+betas_pop = {value=22.9811591236635, method=MLE}
+lambda_pop = {value=376.566251579736, method=MLE}
+m_pop = {value=525.655643393014, method=MLE}
+omega_NPs = {value=1, method=MLE}
+omega_betas = {value=1, method=MLE}
+omega_lambda = {value=1, method=MLE}
+omega_m = {value=1, method=MLE}
+omega_p = {value=1, method=MLE}
+omega_ta = {value=1, method=MLE}
+p_pop = {value=0.8426643359888381, method=MLE}
+ta_pop = {value=27.1651812212999, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode })
+fim(method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+
+[PLOTS]
+run = true
+plots = {indfits = {selected = true}, parameterdistribution = {selected = true}, obspred = {selected = true}, covariancemodeldiagnosis = {selected = true}, covariatemodeldiagnosis = {selected = true}, vpc = {selected = true}, residualsscatter = {selected = true}, residualsdistribution = {selected = true}, randomeffects = {selected = true}, saemresults = {selected = true}}
+
+[SETTINGS]
+GLOBAL:
+exportpath = '../'
+
+POPULATION:
+burniniterations = 50
+smoothingiterations = 500
+exploratoryiterations = 1000
+simulatedannealingiterations = 1000
+
