@@ -1405,8 +1405,8 @@ plot_parameter_ranges <- function(initialValue_ranges, log10_tabestimates, tabes
     plot <- plot + 
       geom_point(data = best, aes(x = "3", y = estimate), 
                  color = "darkgreen", inherit.aes = F, size = 2) +
-      ggrepel::geom_text_repel(data = best, aes(x = "3", y = estimate, label = signif(estimate, 2)), 
-                               color = "darkgreen", inherit.aes = F, fontface = 2, min.segment.length = 0, direction = "x")
+      geom_text(data = best, aes(x = "3", y = estimate, label = signif(estimate, 2)), 
+                               color = "darkgreen", inherit.aes = F, fontface = 2, vjust = 0, hjust = 1)
   }
   
   plot
