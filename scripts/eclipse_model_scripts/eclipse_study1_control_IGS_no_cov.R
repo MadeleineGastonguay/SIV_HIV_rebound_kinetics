@@ -90,19 +90,36 @@ save(tabestimates, tabiters, phase, initialvalues, shrinkage, indivParams, indiv
 log10_tabestimates <- tabestimates
 log10_initialvalues <- initialvalues
 
-runs <- calculate_BICw(log10_tabestimates) %>% filter(cumprob <= 0.65) %>% pull(run)
-plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, color = runs)
+runs <- calculate_BICw(log10_tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
 
-correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)), remove_bicc_outliers = T)
+distinct(log10_tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs)) + 
+  geom_beeswarm()
 
-compare_estimates(tabestimates, remove_bicc_outliers = T)
+plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, remove_estimate_outliers = T, color = runs,
+                     out_folder = out_folder, project_name = project_name, file_addendum = "_log10")
+
+# Best runs have unrealistically large m, going to remove them
+exclude_runs <- log10_tabestimates %>% filter(bicc < 194) %>% pull(run) %>% unique
+
+new_runs <- calculate_BICw(log10_tabestimates %>% filter(!run %in% exclude_runs)) %>% filter(cumprob <= 0.95) %>% pull(run)
+
+distinct(log10_tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% new_runs)) + 
+  geom_beeswarm()
+
+plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T,  color = new_runs,
+                     out_folder = out_folder, project_name = project_name, file_addendum = "_log10_low_m")
+
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter), run %in% new_runs), remove_bicc_outliers = T)
+compare_estimates(tabestimates %>% filter(run %in% new_runs), remove_bicc_outliers = T)
 
 
 # Initial guess sampling from a narrower range of values ####
-plot_parameter_ranges(initialValue_ranges, log10_tabestimates, p_threshold = 0.7)
+plot_parameter_ranges(initialValue_ranges, log10_tabestimates %>% filter(!run %in% exclude_runs), p_threshold = 0.95)
 
 ## Calculate narrower ranges for IGS:
-initialValue_ranges_narrow <- get_narrow_ranges(tabestimates, p_threshold = 0.7) %>% select(-best)
+initialValue_ranges_narrow <- get_narrow_ranges(log10_tabestimates %>% filter(!run %in% exclude_runs), p_threshold = 0.95) %>% select(-best)
 
 write_csv(initialValue_ranges_narrow, here(out_folder, "initialValue_ranges_narrow.csv"))
 
@@ -113,7 +130,7 @@ initialValue_ranges_narrow <- initialValue_ranges_narrow %>%
 # Use initial condition of 1 for all random effects
 parameter_results <- initial_guess_sampling(
   initialValue_ranges_narrow, 
-  nits = 100,
+  nits = 50,
   record_shrinkage = T,
   record_indiv_params = T,
   set_variance = 1
@@ -124,10 +141,10 @@ for(name in names(parameter_results)){
   assign(name, parameter_results[[name]])
 }
 
-# save(tabestimates, tabiters, phase, initialvalues, shrinkage, indivParams, indivFit,
-#      file = here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
+save(tabestimates, tabiters, phase, initialvalues, shrinkage, indivParams, indivFit,
+     file = here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
 
-load(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
+# load(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
 
 # Run model with initial guesses set from best fit:
 igs <- initialvalues %>% filter(run == unique(filter(tabestimates, bicc == min(bicc))$run))

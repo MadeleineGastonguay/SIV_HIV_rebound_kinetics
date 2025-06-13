@@ -96,7 +96,8 @@ if(RERUN){
   # Initial guess sampling from a narrower range of values ####
   
   ## Calculate narrower ranges for IGS:
-  initialValue_ranges_narrow <- get_narrow_ranges(tabestimates, p_threshold = 0.95) %>% 
+  exclude_runs <- log10_tabestimates %>% filter(bicc < 441) %>% pull(run) %>% unique
+  initialValue_ranges_narrow <- get_narrow_ranges(tabestimates %>% filter(!run %in% exclude_runs), p_threshold = 0.95) %>% 
     column_to_rownames("parameter") %>% select(-best)
   
   write_csv(initialValue_ranges_narrow %>% rownames_to_column("parameter"), here(out_folder, "initialValue_ranges_narrow.csv"))
@@ -105,7 +106,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 100,
+    nits = 50,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1
@@ -131,13 +132,37 @@ if(RERUN){
 }
 
 # Visualize results from wide IGS ####
-## Look at parameter ranges from each step
-plot_parameter_ranges(initialValue_ranges, log10_tabestimates, p_threshold = 0.95)
 
 ## Color by "best" runs according to BICc
-runs <- calculate_BICw(log10_tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
-plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, color = runs,
-                     out_folder = out_folder, project_name = project_name, narrow = F)
+runs <- calculate_BICw(log10_tabestimates) %>% filter(cumprob <= 0.99) %>% pull(run)
+
+distinct(log10_tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs)) + 
+  geom_beeswarm()
+
+plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, remove_estimate_outliers = T,
+                     color = runs,
+                     out_folder = out_folder, project_name = project_name, narrow = F,
+                     file_addendum = "_log10")
+
+## Look at parameter ranges from each step
+plot_parameter_ranges(initialValue_ranges, log10_tabestimates, p_threshold = 0.99)
+
+# The best runs all have unreasonably high m, I will filter them out and repeat the process
+exclude_runs <- log10_tabestimates %>% filter(bicc < 441) %>% pull(run) %>% unique
+
+new_runs <- calculate_BICw(log10_tabestimates %>% filter(!run %in% exclude_runs)) %>% filter(cumprob <= 0.95) %>% pull(run)
+
+distinct(log10_tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% new_runs)) + 
+  geom_beeswarm()
+
+plot_bicc_v_estimate(log10_tabestimates, remove_bicc_outliers = T, remove_estimate_outliers = T,
+                     color = new_runs,
+                     out_folder = out_folder, project_name = project_name, narrow = F,
+                     file_addendum = "_log10_low_m")
+
+plot_parameter_ranges(initialValue_ranges, log10_tabestimates %>% filter(!run %in% exclude_runs), p_threshold = 0.95)
 
 ## Assess identifiability
 correlate_estimates(log10_tabestimates %>% filter(grepl("pop", parameter)), remove_bicc_outliers = T)
