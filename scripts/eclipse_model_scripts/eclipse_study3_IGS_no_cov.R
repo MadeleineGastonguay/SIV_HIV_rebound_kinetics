@@ -137,7 +137,7 @@ if(RERUN){
        file = here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
   
   # Save best estimates
-  write_csv(tabestimates %>% filter(bicc == min(bicc)),
+  write_csv(rbind(tabestimates %>% mutate(set = "narrow"), log10_tabestimates %>% mutate(set = "log10")) %>% filter(bicc == min(bicc)),
             here(out_folder, str_remove(project_name, "\\.mlxtran$"), "best_estimates.csv"))
   
 }else{
@@ -251,7 +251,8 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   geom_point() + 
   scale_x_log10() +
   geom_vline(xintercept = 200) +
-  geom_vline(xintercept = 3000) 
+  geom_vline(xintercept = 3000) +
+  geom_smooth(color = "black")
 
 # Find range of p for profile likelihood:
 tabestimates %>% filter(parameter == "p_pop") %>% pull(estimate) %>% range
@@ -262,7 +263,8 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   geom_point() +
   # scale_x_log10() + 
   geom_vline(xintercept = 0) +
-  geom_vline(xintercept = 2)
+  geom_vline(xintercept = 2) +
+  geom_smooth(color = "black")
 
 # Find range of m for profile likelihood:
 tabestimates %>% filter(parameter == "m_pop") %>% pull(estimate) %>% range
@@ -271,11 +273,41 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   filter(parameter == "m_pop", bicc < 815) %>% 
   ggplot(aes(estimate, bicc, color = a)) + 
   geom_point() +
-  # scale_x_log10() + 
+  scale_x_log10() +
   geom_vline(xintercept = 200) +
   geom_vline(xintercept = 2000) + 
-  coord_cartesian(xlim = c(0,4000))
+  coord_cartesian(xlim = c(10,4000)) + 
+  geom_smooth(color = "black")
 
+
+#####
+igs <- data.frame(
+  parameter = unique(tabestimates$parameter),
+  initialValue = 1,
+  method = "MLE"
+) %>% 
+  mutate(initialValue = case_when(
+    parameter == "betas_pop" ~ 10,
+    parameter == "lambda_pop" ~ 1000,
+    parameter == "m_pop" ~ 1000,
+    parameter == "NPs_pop" ~ 0.1,
+    parameter == "p_pop" ~ 1,
+    parameter == "ta_pop" ~ 15,
+    .default = initialValue
+  ))
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(grepl("pop", parameter), bicc < 830,
+         !(parameter == "lambda_pop" & estimate > 1e5),
+         !(parameter == "betas_pop" & estimate < 1e-2)) %>% 
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point() + 
+  scale_x_log10() + 
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") + 
+  geom_vline(data = igs %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black") 
 
 
 

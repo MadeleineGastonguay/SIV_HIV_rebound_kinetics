@@ -8,7 +8,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
@@ -111,11 +111,29 @@ if(RERUN){
     set_variance = 1
   )
   
+  parameter_results2 <- initial_guess_sampling(
+    initialValue_ranges_narrow, 
+    nits = 50,
+    record_shrinkage = T,
+    record_indiv_params = T,
+    set_variance = 1
+  )
+  
   ## Save results
   for(name in names(parameter_results)){
     assign(name, parameter_results[[name]])
   }
 
+  # combine elements of parmater_results2 with parameter_results and update the run number in results 2 to add 50 
+  tabestimates <- rbind(tabestimates, parameter_results2$tabestimates %>% mutate(run = run + max(parameter_results$tabestimates$run)))
+  tabiters <- rbind(tabiters, parameter_results2$tabiters %>% mutate(run = run + max(parameter_results$tabestimates$run)))
+  phase <- rbind(phase, parameter_results2$phase)
+  initialvalues <- rbind(initialvalues, parameter_results2$initialvalues %>% mutate(run = run + max(parameter_results$tabestimates$run)))
+  shrinkage <- rbind(shrinkage, parameter_results2$shrinkage %>% mutate(run = run + max(parameter_results$tabestimates$run)))
+  indivParams <- rbind(indivParams, parameter_results2$indivParams %>% mutate(run = run + max(parameter_results$tabestimates$run)))
+  indivFit <- rbind(indivFit, parameter_results2$indivFit %>% mutate(run = run + max(parameter_results$tabestimates$run)))
+  
+  
   save(tabestimates, tabiters, phase, initialvalues, shrinkage, indivParams, indivFit,
        file = here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
   
@@ -181,9 +199,11 @@ pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "indiv_trajectorie
 for(param in names(indivParams)[2:7]){
   print(
     indivDF %>% 
-    ggplot(aes(time, indivPred_mode, color = log10(!!as.symbol(param)), group = interaction(id, run))) + 
-      geom_point(data = . %>% filter(run == 1), alpha = 0.5, inherit.aes = F, aes(time, vl)) +
+    ggplot(aes(time, indivPred_mode, color = (!!as.symbol(param)), group = interaction(id, run))) + 
+      geom_point(data = . %>% filter(run == min(run)), alpha = 0.5, inherit.aes = F, aes(time, vl)) +
       geom_line(alpha = 0.5) + 
+      geom_line(data = . %>% merge(distinct(tabestimates, run, bicc) %>% filter(bicc == min(bicc))),
+                color = "black", lty = "dashed")+
       facet_wrap(~id) + 
       scale_color_viridis_c(direction = -1)
   )
@@ -212,6 +232,79 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
+## Make sure best estimates are reasonable in terms of P:
+best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
+initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
+runScenario()
+
+variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
+variables %>% 
+  ggplot(aes(time, P_mode)) + 
+  geom_line() + 
+  facet_wrap(~id, scales = "free_y") + 
+  scale_y_log10() 
+
+## Decide on parameter bounds for profile likelihood
+
+tabestimates %>% group_by(parameter) %>% summarise(min = min(estimate), max = max(estimate))
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(parameter == "lambda_pop") %>% 
+  ggplot(aes(estimate, bicc, color = a)) + 
+  geom_point() + 
+  # geom_vline(xintercept = 50) +
+  # geom_vline(xintercept = 500) +
+  coord_cartesian(xlim = c(20, 100))
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(parameter == "m_pop") %>% 
+  ggplot(aes(estimate, bicc, color = a)) + 
+  geom_point() + 
+  scale_x_log10() +
+  geom_vline(xintercept = 10) +
+  geom_vline(xintercept = 150) +
+  coord_cartesian(xlim = c(1e-1, 1e3))
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(parameter == "p_pop") %>% 
+  ggplot(aes(estimate, bicc, color = a)) + 
+  geom_point() +
+  # scale_x_log10() +
+  coord_cartesian(xlim = c(0, 10)) +
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 2)
+
+#####
+igs <- data.frame(
+  parameter = unique(tabestimates$parameter),
+  initialValue = 1,
+  method = "MLE"
+) %>% 
+  mutate(initialValue = case_when(
+    parameter == "betas_pop" ~ 15,
+    parameter == "lambda_pop" ~ 50,
+    parameter == "m_pop" ~ 50,
+    parameter == "NPs_pop" ~ 1.5,
+    parameter == "p_pop" ~ 1,
+    parameter == "ta_pop" ~ 1,
+    .default = initialValue
+  ))
+
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(grepl("pop", parameter), bicc < 590) %>% 
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point(alpha = 0.5) + 
+  scale_x_log10() + 
+  geom_smooth(se = FALSE) +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") +
+  geom_vline(data = igs %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black")
 
 
 # Run profile likelihood for lambda, p, and m ####

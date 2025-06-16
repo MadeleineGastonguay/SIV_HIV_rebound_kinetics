@@ -8,7 +8,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
@@ -136,7 +136,7 @@ if(RERUN){
        file = here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
   
   # Save best estimates
-  write_csv(tabestimates %>% filter(bicc == min(bicc)),
+  write_csv(rbind(tabestimates %>% mutate(set = "narrow"), log10_tabestimates %>% mutate(set = "log10")) %>% filter(bicc == min(bicc)),
             here(out_folder, str_remove(project_name, "\\.mlxtran$"), "best_estimates.csv"))
   
 }else{
@@ -264,6 +264,38 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   geom_vline(xintercept = 50) +
   geom_vline(xintercept = 2000) + 
   coord_cartesian(xlim = c(10,2.5e3))
+
+
+###
+igs <- data.frame(
+  parameter = unique(tabestimates$parameter),
+  initialValue = 1,
+  method = "MLE"
+) %>% 
+  mutate(initialValue = case_when(
+    parameter == "betas_pop" ~ 10,
+    parameter == "lambda_pop" ~ 1000,
+    parameter == "m_pop" ~ 300,
+    parameter == "NPs_pop" ~ 0.2,
+    parameter == "p_pop" ~ 1,
+    parameter == "ta_pop" ~ 15,
+    .default = initialValue
+  ))
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(grepl("pop", parameter), bicc < 265,
+          !(parameter == "m_pop" & estimate < 1e-1)) %>%
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point(alpha = 0.5) + 
+  scale_x_log10() + 
+  geom_smooth(se = FALSE) +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") +
+  geom_vline(data = igs %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black") 
+
+
 
 # Run profile likelihood for lambda, p, and m ####
 if(RERUN){
