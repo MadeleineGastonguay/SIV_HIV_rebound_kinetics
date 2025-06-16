@@ -8,7 +8,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
@@ -241,6 +241,17 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
+## Make sure best estimates are reasonable in terms of P:
+best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
+initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
+runScenario()
+
+variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
+variables %>% 
+  ggplot(aes(time, P_mode)) + 
+  geom_line() + 
+  facet_wrap(~id, scales = "free_y")
+
 # Find ranges for profile likelihood
 tabestimates %>% filter(parameter == "lambda_pop") %>% pull(estimate) %>% range
 rbind(log10_tabestimates %>% mutate(a = "log10"),
@@ -272,6 +283,40 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   geom_vline(xintercept = 0) +
   geom_vline(xintercept = 2) +
   coord_cartesian(xlim = c(0,5))
+
+#####
+igs <- data.frame(
+  parameter = unique(tabestimates$parameter),
+  initialValue = 1,
+  method = "MLE"
+) %>% 
+  mutate(initialValue = case_when(
+    parameter == "betas_pop" ~ 100,
+    parameter == "lambda_pop" ~ 100,
+    parameter == "m_pop" ~ 500,
+    parameter == "NPs_pop" ~ 0.005,
+    parameter == "p_pop" ~ 1,
+    parameter == "ta_pop" ~ 8,
+    .default = initialValue
+  ))
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(grepl("pop", parameter), bicc < 990) %>% #, bicc < 375,
+         # !(parameter == "betas_pop" & estimate < 1)) %>%
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point(alpha = 0.5) + 
+  scale_x_log10() + 
+  geom_smooth(se = FALSE) +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") +
+  geom_vline(data = igs %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black") 
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  group_by(parameter, a) %>% 
+  filter(grepl("pop", parameter), bicc == min(bicc))
 
 
 # Run profile likelihood for lambda, p, and m ####

@@ -241,6 +241,17 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
+## Make sure best estimates are reasonable in terms of P:
+best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
+initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
+runScenario()
+
+variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
+variables %>% 
+  ggplot(aes(time, P_mode)) + 
+  geom_line() + 
+  facet_wrap(~id, scales = "free_y")
+
 # Find range of lambda for profile likelihood:
 tabestimates %>% filter(parameter == "lambda_pop") %>% pull(estimate) %>% range
 

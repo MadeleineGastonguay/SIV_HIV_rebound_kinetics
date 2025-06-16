@@ -8,7 +8,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
@@ -240,6 +240,19 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
+## Make sure best estimates are reasonable in terms of P:
+best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
+initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
+runScenario()
+
+variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
+variables %>% 
+  ggplot(aes(time, P_mode)) + 
+  geom_line() + 
+  facet_wrap(~id, scales = "free_y") + 
+  scale_y_log10() + 
+  geom_line(data = indivFit %>% filter(run == best), aes(y = 10^indivPred_mode, color = "vl"))
+
 # Decide on profile likelihood bounds
 tabestimates %>% group_by(parameter) %>% summarise(min = min(estimate), max = max(estimate))
 
@@ -261,6 +274,24 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   scale_x_log10() + 
   geom_vline(xintercept = 700) +
   geom_vline(xintercept = 3000)
+
+#####
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(grepl("pop", parameter), bicc < 375,
+         !(parameter == "betas_pop" & estimate < 1)) %>%
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point(alpha = 0.5) + 
+  scale_x_log10() + 
+  geom_smooth(se = FALSE) +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") 
+
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(grepl("pop", parameter)) %>% 
+  group_by(parameter, a) %>% 
+  filter(bicc == min(bicc))
 
 
 
