@@ -332,7 +332,7 @@ initial_guess_sampling <- function(initialValue_ranges, log10 = NULL,
   return(out)
 }
 
-profile_likelihood <- function(parameter, range, igs, nits, use_estimates_as_ig = F){
+profile_likelihood <- function(parameter, range, igs, nits, use_estimates_as_ig = F, linearize = F, record_predictions = F){
   
   values <- seq(range[1], range[2], length.out = nits)
   
@@ -341,7 +341,14 @@ profile_likelihood <- function(parameter, range, igs, nits, use_estimates_as_ig 
   
   initialValues[initialValues$name == parameter, "method"] <- "FIXED"
   
+  if(linearize){
+    scenario <- getScenario()
+    scenario$linearization <- TRUE
+    setScenario(scenario)
+  }
+  
   tabestimates <- NULL
+  predictions <- NULL
   for(i in 1:nits){
     print(i)
     
@@ -351,38 +358,79 @@ profile_likelihood <- function(parameter, range, igs, nits, use_estimates_as_ig 
     initialValues[initialValues$name == parameter, "initialValue"] <- value
     setPopulationParameterInformation(initialValues)
     
-    print(getPopulationParameterInformation())
+    # print(getPopulationParameterInformation())
     
-    # Model fitting
-    runScenario()
+    tryCatch({
+      # Model fitting
+      runScenario()
+      
+      # Get standard errors and likelihoods:
+      if(linearize){
+        SEs <- getEstimatedStandardErrors()$linearization
+        likelihoods <- getEstimatedLogLikelihood()$linearization
+      }else{
+        SEs <- getEstimatedStandardErrors()$stochasticApproximation
+        likelihoods <- getEstimatedLogLikelihood()$importanceSampling
+      }
+      
+      
+      # store the estimates and s.e. in a table
+      estimates <- as.data.frame(getEstimatedPopulationParameters())
+      names(estimates) <- "estimate"
+      rses <- SEs$rse
+      names(rses) <- SEs$parameter  
+      rses <- as.data.frame(rses)
+      estimates <- merge(estimates, rses, by = "row.names")
+      estimates$param <- value
+      estimates$ofv <- likelihoods[1]
+      estimates$aic <- likelihoods[2]
+      estimates$bic <- likelihoods[3]
+      estimates$bicc <- likelihoods[4]
+      names(estimates)[names(estimates) == "Row.names"] <- "parameter"
+      
+      print(paste0(parameter, ": ", value, " bicc: ", round(unique(estimates$bicc))))
+      
+      # Combine results
+      tabestimates <- rbind(tabestimates, estimates)
+      
+      if(record_predictions){
+        vl_pred <- getEstimatedPredictions()$tot  %>% mutate(id = as.character(id)) 
+        EBE <- getEstimatedIndividualParameters(method = "conditionalMode")$conditionalMode  %>% mutate(id = as.character(id))
+        table_pred <- read_delim(here(out_folder, gsub(".mlxtran", "", project_name), "tables.txt")) %>% 
+          select(id, time, contains("mode"))  %>% mutate(id = as.character(id))
+        predictions_temp <- right_join(
+          EBE,
+          left_join(
+            vl_pred, table_pred
+          )
+        ) %>% mutate(parameter = value) %>% 
+          select(parameter, everything())
+        
+        names(predictions_temp)[names(predictions_temp) == "parameter"] <- parameter
+        
+        # Combine resuts
+        predictions <- rbind(predictions, predictions_temp)
+      }
+      
+      
+      if(use_estimates_as_ig){
+        initialValues <- estimates %>% select(name = parameter, initialValue = estimate) %>% 
+          mutate(method = "MLE", initialValue = ifelse(grepl("pop", name), initialValue, pmax(initialValue, 1))) 
+        initialValues <- rbind(initialValues, data.frame(name = parameter, initialValue = value, method = "FIXED"))
+      }
+      
+      
+    }, error=function(e){cat("ERROR for ", i, ": ",conditionMessage(e), "\n")})
     
-    # store the estimates and s.e. in a table
-    estimates <- as.data.frame(getEstimatedPopulationParameters())
-    names(estimates) <- "estimate"
-    rses <- getEstimatedStandardErrors()$stochasticApproximation$rse
-    names(rses) <- getEstimatedStandardErrors()$stochasticApproximation$parameter
-    rses <- as.data.frame(rses)
-    estimates <- merge(estimates, rses, by = "row.names")
-    estimates$param <- value
-    estimates$ofv <- getEstimatedLogLikelihood()$importanceSampling[1]
-    estimates$aic <- getEstimatedLogLikelihood()$importanceSampling[2]
-    estimates$bic <- getEstimatedLogLikelihood()$importanceSampling[3]
-    estimates$bicc <- getEstimatedLogLikelihood()$importanceSampling[4]
-    names(estimates)[names(estimates) == "Row.names"] <- "parameter"
-    
-    # Combine results
-    tabestimates <- rbind(tabestimates, estimates)
-    
-    if(use_estimates_as_ig){
-      initialValues <- estimates %>% select(name = parameter, initialValue = estimate) %>% 
-        mutate(method = "MLE", initialValue = ifelse(grepl("pop", name), initialValue, pmax(initialValue, 1))) 
-      initialValues <- rbind(initialValues, data.frame(name = parameter, initialValue = value, method = "FIXED"))
-    }
   }
   
   names(tabestimates)[names(tabestimates) == "param"] <- parameter
   
-  return(tabestimates)
+  if(record_predictions){
+    return(list(tabestimates = tabestimates, predictions = predictions))
+  }else{
+    return(tabestimates)
+  }
   
 }
 
@@ -1406,7 +1454,7 @@ plot_parameter_ranges <- function(initialValue_ranges, log10_tabestimates, tabes
       geom_point(data = best, aes(x = "3", y = estimate), 
                  color = "darkgreen", inherit.aes = F, size = 2) +
       geom_text(data = best, aes(x = "3", y = estimate, label = signif(estimate, 2)), 
-                               color = "darkgreen", inherit.aes = F, fontface = 2, vjust = 0, hjust = 1)
+                color = "darkgreen", inherit.aes = F, fontface = 2, vjust = 0, hjust = 1)
   }
   
   plot
