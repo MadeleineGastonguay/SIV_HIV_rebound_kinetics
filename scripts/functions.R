@@ -336,8 +336,15 @@ profile_likelihood <- function(parameter, range, igs, nits, use_estimates_as_ig 
   
   values <- seq(range[1], range[2], length.out = nits)
   
-  initialValues <- igs %>% select(name = parameter, initialValue = estimate) %>%
-    mutate(method = "MLE", initialValue = ifelse(grepl("pop", name), initialValue, pmax(initialValue, 1))) 
+  initialValues <- igs
+  if("estimate" %in% names(igs)){
+    initialValues <- igs %>% select(name = parameter, initialValue = estimate) %>%
+      mutate(method = "MLE", initialValue = ifelse(grepl("pop", name), initialValue, pmax(initialValue, 1))) 
+  }
+  if("parameter" %in% names(igs)){
+    names(initialValues)[names(initialValues) == "parameter"] <- "name"
+  }
+  
   
   initialValues[initialValues$name == parameter, "method"] <- "FIXED"
   
