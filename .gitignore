@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 .Rhistory
 .Rproj.user/CFD904D7/ctx/ctx-27531/after_restart_command
 .Rproj.user/CFD904D7/ctx/ctx-27531/built_package_path
@@ -68,3 +69,11 @@
 .Rproj.user/CFD904D7/sources/session-9f80c46c/lock_file
 .Rproj.user/shared/notebooks/patch-chunk-names
 .Rproj.user/shared/notebooks/paths
+=======
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+>>>>>>> Stashed changes
+data/.DS_Store
+scripts/.DS_Store
