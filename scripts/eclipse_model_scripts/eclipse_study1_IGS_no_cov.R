@@ -8,7 +8,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
@@ -330,16 +330,17 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
 
 # Run profile likelihood for lambda, p, and m ####
 if(RERUN){
-  igs <- tabestimates %>% filter(bicc == min(bicc)) %>% mutate(estimate = signif(estimate, 1)) 
+  lambda_profile <- profile_likelihood("lambda_pop", c(20,1000), igs, nits = 60, linearize = T, record_predictions = T)
+  write_csv(lambda_profile$tabestimates, here(out_folder, "lambda_profile_likelihood.csv"))
+  write_csv(lambda_profile$predictions, here(out_folder, "lambda_profile_likelihood_table.csv"))
   
-  lambda_profile <- profile_likelihood("lambda_pop", c(40,400), igs, nits = 60)
-  write_csv(lambda_profile, here(out_folder, "lambda_profile_likelihood.csv"))
+  p_profile <- profile_likelihood("p_pop", c(0.1,5), igs, nits = 50, linearize = T, record_predictions = T)
+  write_csv(p_profile$tabestimates, here(out_folder, "p_profile_likelihood.csv"))
+  write_csv(p_profile$predictions, here(out_folder, "p_profile_likelihood_table.csv"))
   
-  p_profile <- profile_likelihood("p_pop", c(0.5,5), igs, nits = 60)
-  write_csv(p_profile, here(out_folder, "p_profile_likelihood.csv"))
-  
-  m_profile <- profile_likelihood("m_pop", c(10, 160), igs, nits = 60)
-  write_csv(m_profile, here(out_folder, "m_profile_likelihood.csv"))
+  m_profile <- profile_likelihood("m_pop", c(10, 1000), igs, nits = 60, linearize = T, record_predictions = T)
+  write_csv(m_profile$tabestimates, here(out_folder, "m_profile_likelihood.csv"))
+  write_csv(m_profile$predictions, here(out_folder, "m_profile_likelihood_table.csv"))
   
 }else{
   lambda_profile <- read_csv( here(out_folder, "lambda_profile_likelihood.csv"))
