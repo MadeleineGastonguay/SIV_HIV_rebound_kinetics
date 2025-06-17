@@ -144,12 +144,12 @@ initial_guess_sampling <- function(initialValue_ranges, log10 = NULL,
                                    record_shrinkage = FALSE,
                                    fixed = NULL, predefined_initialvalues = NULL,
                                    record_pvals = FALSE, record_indiv_params = FALSE,
-                                   record_condition_number = FALSE){
+                                   record_condition_number = FALSE, record_table = FALSE){
   
   
   popparams <- getPopulationParameterInformation()
   
-  estimates <- tabestimates <- tabiters <-  phase <- initialvalues <- shrinkage_df <- treatment_pvals <- indivParams <- predictions <- condition_numbers <- NULL;
+  estimates <- tabestimates <- tabiters <-  phase <- initialvalues <- shrinkage_df <- treatment_pvals <- indivParams <- predictions <- condition_numbers <- table_predictions <- NULL;
   
   run_condition <- TRUE
   i <- 1
@@ -246,7 +246,7 @@ initial_guess_sampling <- function(initialValue_ranges, log10 = NULL,
         
         predictions <- rbind(
           predictions, 
-          read_delim(here(out_folder, gsub(".mlxtran", "", project_name), "predictions.txt")) %>% 
+          read_delimd(here(out_folder, gsub(".mlxtran", "", project_name), "predictions.txt")) %>% 
             mutate(run = i)
         )
       }
@@ -287,6 +287,15 @@ initial_guess_sampling <- function(initialValue_ranges, log10 = NULL,
         condition_numbers <- rbind(condition_numbers, data.frame(run = i, condition_number = condition_number))  
       }
       
+      # Get predictions for variables in table if specified:
+      if(record_table){
+        table_predictions <- rbind(
+          table_predictions, 
+          read_delim(here(out_folder, gsub(".mlxtran", "", project_name), "tables.txt")) %>% 
+            mutate(run = i)
+        )
+      }
+      
       
     }, error=function(e){cat("ERROR for ", i, ": ",conditionMessage(e), "\n")})
     
@@ -317,6 +326,10 @@ initial_guess_sampling <- function(initialValue_ranges, log10 = NULL,
   
   if(record_condition_number){
     out$condition_number <- condition_numbers
+  }
+  
+  if(record_table){
+    out$table_predictions <- table_predictions
   }
   
   # Rerun the model with the initial values that gave the best fit:
@@ -351,6 +364,10 @@ profile_likelihood <- function(parameter, range, igs, nits, use_estimates_as_ig 
   if(linearize){
     scenario <- getScenario()
     scenario$linearization <- TRUE
+    setScenario(scenario)
+  }else{
+    scenario <- getScenario()
+    scenario$linearization <- FALSE
     setScenario(scenario)
   }
   
