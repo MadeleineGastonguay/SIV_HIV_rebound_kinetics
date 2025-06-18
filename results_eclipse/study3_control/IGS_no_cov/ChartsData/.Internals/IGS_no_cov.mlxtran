@@ -37,19 +37,19 @@ data = 'vl'
 model = vl
 
 <PARAMETER>
-NPs_pop = {value=0.46897276578001, method=MLE}
+NPs_pop = {value=0.2, method=MLE}
 a = {value=1, method=MLE}
-betas_pop = {value=22.9811591236635, method=MLE}
-lambda_pop = {value=376.566251579736, method=MLE}
-m_pop = {value=525.655643393014, method=MLE}
+betas_pop = {value=10, method=MLE}
+lambda_pop = {value=1000, method=MLE}
+m_pop = {value=1000, method=FIXED}
 omega_NPs = {value=1, method=MLE}
 omega_betas = {value=1, method=MLE}
 omega_lambda = {value=1, method=MLE}
 omega_m = {value=1, method=MLE}
 omega_p = {value=1, method=MLE}
 omega_ta = {value=1, method=MLE}
-p_pop = {value=0.8426643359888381, method=MLE}
-ta_pop = {value=27.1651812212999, method=MLE}
+p_pop = {value=1, method=MLE}
+ta_pop = {value=15, method=MLE}
 
 <MONOLIX>
 
