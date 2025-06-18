@@ -330,15 +330,15 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
 
 # Run profile likelihood for lambda, p, and m ####
 if(RERUN){
-  lambda_profile <- profile_likelihood("lambda_pop", c(20,1000), igs, nits = 60, linearize = T, record_predictions = T)
+  lambda_profile <- profile_likelihood("lambda_pop", c(20,1000), igs, nits = 99, record_predictions = T)
   write_csv(lambda_profile$tabestimates, here(out_folder, "lambda_profile_likelihood.csv"))
   write_csv(lambda_profile$predictions, here(out_folder, "lambda_profile_likelihood_table.csv"))
   
-  p_profile <- profile_likelihood("p_pop", c(0.1,5), igs, nits = 50, linearize = T, record_predictions = T)
+  p_profile <- profile_likelihood("p_pop", c(0.1,5), igs, nits = 50, record_predictions = T)
   write_csv(p_profile$tabestimates, here(out_folder, "p_profile_likelihood.csv"))
   write_csv(p_profile$predictions, here(out_folder, "p_profile_likelihood_table.csv"))
   
-  m_profile <- profile_likelihood("m_pop", c(10, 1000), igs, nits = 60, linearize = T, record_predictions = T)
+  m_profile <- profile_likelihood("m_pop", c(10, 1000), igs, nits = 100, record_predictions = T)
   write_csv(m_profile$tabestimates, here(out_folder, "m_profile_likelihood.csv"))
   write_csv(m_profile$predictions, here(out_folder, "m_profile_likelihood_table.csv"))
   
