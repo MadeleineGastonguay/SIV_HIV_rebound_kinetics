@@ -45,7 +45,8 @@ names(error_model) <- names(data)[headerTypes == "observation"]
 if(RERUN){
   ## Create Project
   create_project(model_file, data_file, headerTypes, error_model,
-                 exclude_random_effects, treatment_effects = NULL, normal_dist = NULL, fixed = fixed)
+                 exclude_random_effects, treatment_effects = NULL, 
+                 normal_dist = NULL, fixed = fixed)
   
   saveProject(here(out_folder, project_name))
   
@@ -53,7 +54,8 @@ if(RERUN){
   # Initial guess sampling from a narrower range of values ####
   
   ## Calculate narrower ranges for IGS:
-  initialValue_ranges_narrow <- read_csv(here(out_folder, "initialValue_ranges_narrow.csv")) %>% column_to_rownames("parameter")
+  initialValue_ranges_narrow <- read_csv(here(out_folder, "initialValue_ranges_narrow.csv")) %>% 
+    column_to_rownames("parameter")
 
   
   ## initial guess sampling from narrow range

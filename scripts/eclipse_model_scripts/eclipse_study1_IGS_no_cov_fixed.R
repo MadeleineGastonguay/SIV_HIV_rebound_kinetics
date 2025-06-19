@@ -45,7 +45,8 @@ names(error_model) <- names(data)[headerTypes == "observation"]
 if(RERUN){
   ## Create Project
   create_project(model_file, data_file, headerTypes, error_model,
-                 exclude_random_effects, treatment_effects = NULL, normal_dist = NULL, fixed = fixed)
+                 exclude_random_effects, treatment_effects = NULL,
+                 normal_dist = NULL, fixed = fixed)
   
   saveProject(here(out_folder, project_name))
   
