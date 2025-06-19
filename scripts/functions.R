@@ -246,7 +246,7 @@ initial_guess_sampling <- function(initialValue_ranges, log10 = NULL,
         
         predictions <- rbind(
           predictions, 
-          read_delimd(here(out_folder, gsub(".mlxtran", "", project_name), "predictions.txt")) %>% 
+          read_delim(here(out_folder, gsub(".mlxtran", "", project_name), "predictions.txt")) %>% 
             mutate(run = i)
         )
       }
