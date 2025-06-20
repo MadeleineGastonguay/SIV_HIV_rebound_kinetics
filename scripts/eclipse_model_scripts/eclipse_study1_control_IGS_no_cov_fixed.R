@@ -91,6 +91,11 @@ if(RERUN){
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name)
 
+## There is regime with worse BICc
+best_runs <- calculate_BICw(tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
+distinct(tabestimates, bicc, run) %>% ggplot(aes("BICc", bicc, color = run %in% best_runs)) + geom_beeswarm()
+plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = best_runs)
+
 ## Assess identifiability
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
@@ -98,15 +103,24 @@ compare_estimates(tabestimates, remove_bicc_outliers = T,
                   out_folder = out_folder, project_name = project_name)
 estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
 
+correlate_estimates(tabestimates %>% filter(run %in% best_runs), remove_bicc_outliers = T,
+                    out_folder = out_folder, project_name = project_name, file_addendum = "_best_runs")
+compare_estimates(tabestimates %>% filter(run %in% best_runs), remove_bicc_outliers = T,
+                  out_folder = out_folder, project_name = project_name, file_addendum = "_best_runs")
+estimate_boxplots(tabestimates %>% filter(run %in% best_runs), 
+                  out_folder = out_folder, project_name = project_name, file_addendum = "_best_runs")
+
 pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
   print(parameter_plots(
-    parameter, remove_bicc_outliers = F, remove_estimate_outliers = F,
+    parameter, remove_bicc_outliers = T, remove_estimate_outliers = F,
     log10_tabestimates = NULL, tabestimates = tabestimates,
     tabiters = tabiters, phase = phase, initialvalues = initialvalues
   ))
 }
 dev.off()
+
 
 ## Plot individual fits
 indivDF <- indivFit %>% mutate(id = as.character(id)) %>% left_join(indivParams)
@@ -147,14 +161,15 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
-## Make sure best estimates are reasonable in terms of P:
-best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
-initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
-runScenario()
+# P is in a more realistic range than when fitting the full data
+table_predictions %>% 
+  left_join(distinct(tabestimates, bicc, run)) %>% 
+  ggplot(aes(time, P_mode, group = factor(run), color = bicc)) + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
 
-variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
-variables %>% 
-  ggplot(aes(time, P_mode)) + 
-  geom_line() + 
-  facet_wrap(~id, scales = "free_y") + 
-  scale_y_log10() 
+# Save best estimates to use as initial conditions for SCM
+best_estimates <- tabestimates %>% filter(bicc == min(bicc))
+write_csv(best_estimates, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "best_estimates.csv"))

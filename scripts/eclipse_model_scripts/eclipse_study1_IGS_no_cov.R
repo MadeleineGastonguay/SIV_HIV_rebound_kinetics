@@ -195,12 +195,29 @@ plot_parameter_ranges(initialValue_ranges, log10_tabestimates, tabestimates, p_t
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name)
 
+# There are some runs that clearly have worse BICc:
+best_runs <- calculate_BICw(tabestimates) %>% filter(cumprob <= 0.99) %>% pull(run)
+distinct(tabestimates, bicc, run) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% best_runs))  + 
+  geom_beeswarm()
+plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = best_runs)
+
 ## Assess identifiability
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
 compare_estimates(tabestimates, remove_bicc_outliers = T,
                   out_folder = out_folder, project_name = project_name)
 estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
+
+## Assess identifiability in better BICc regime
+correlate_estimates(tabestimates %>% filter(run %in% best_runs), remove_bicc_outliers = T,
+                    out_folder = out_folder, project_name = project_name,
+                    file_addendum = "_best_runs")
+compare_estimates(tabestimates %>% filter(run %in% best_runs), remove_bicc_outliers = T,
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_best_runs")
+estimate_boxplots(tabestimates %>% filter(run %in% best_runs), 
+                  out_folder = out_folder, project_name = project_name, file_addendum = "_best_runs")
 
 pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
