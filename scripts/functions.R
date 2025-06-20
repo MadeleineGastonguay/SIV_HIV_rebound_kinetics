@@ -1203,7 +1203,12 @@ plot_estimates <- function(tabestimates, out_folder = "", project_name = "",
 
 ## 
 # Function to plot normalized estimates 
-estimate_boxplots <- function(tabestimates, out_folder = "", project_name = "", file_addendum = NULL){
+estimate_boxplots <- function(tabestimates, remove_bicc_outliers = F, remove_estimate_outliers = F, 
+                              out_folder = "", project_name = "", file_addendum = NULL){
+  
+  results_filtered <- filter_results(tabestimates, remove_estimate_outliers, remove_bicc_outliers )
+  tabestimates <- results_filtered$tabestimates
+  
   CV <- tabestimates %>% group_by(parameter) %>% 
     summarise(CV = signif(sd(estimate)/mean(estimate)*100, 2))
   
@@ -1215,7 +1220,7 @@ estimate_boxplots <- function(tabestimates, out_folder = "", project_name = "", 
   breaks <- c(1,2,5,10)
   bound <- ceiling(max(1/limits[1], limits[2]))
   breaks <- breaks[breaks <= bound]
-  breaks <- sort(round(unique(c(1/breaks, breaks, bound, 1/bound)), 2))
+  breaks <- sort(round(unique(c(1/breaks, breaks, bound, 1/bound), 2)))
   
   parameters <- unique(df$parameter)
   
@@ -1230,7 +1235,7 @@ estimate_boxplots <- function(tabestimates, out_folder = "", project_name = "", 
     geom_text(data = CV, aes(y = Inf, label = CV), vjust = 1) +
     annotate("text", -Inf, Inf, label = "CV (%)", vjust = 1, hjust = 0) +
     scale_y_log10(breaks = breaks, limits = range(breaks)) + 
-    labs(x = "Parameter", y = "Normalized Estimate") 
+    labs(x = "Parameter", y = "Normalized Estimate", caption = results_filtered$caption) 
   
   
   if(out_folder != ""){

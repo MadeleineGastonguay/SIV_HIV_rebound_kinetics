@@ -88,18 +88,20 @@ if(RERUN){
 
 # Visualize results from narrow IGS ####
 
-plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
+plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = F, remove_estimate_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name)
 
 ## Assess identifiability
-correlate_estimates(tabestimates, remove_bicc_outliers = T,
+correlate_estimates(tabestimates, remove_bicc_outliers = F, remove_estimate_outliers = T,
                     out_folder = out_folder, project_name = project_name)
-compare_estimates(tabestimates, remove_bicc_outliers = T,
+compare_estimates(tabestimates, remove_bicc_outliers = F, remove_estimate_outliers = T,
                   out_folder = out_folder, project_name = project_name)
-estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
+estimate_boxplots(tabestimates, remove_estimate_outliers = T, remove_bicc_outliers = T,
+                  out_folder = out_folder, project_name = project_name)
 
 pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
   print(parameter_plots(
     parameter, remove_bicc_outliers = F, remove_estimate_outliers = F,
     log10_tabestimates = NULL, tabestimates = tabestimates,
@@ -154,6 +156,6 @@ table_predictions %>%
   facet_wrap(~id) + 
   scale_y_log10() + 
   color_bicc()
-# Save best estimates to use as initial conditions for SCM
+
+# The best estimates are absurd ... this does not make sense to use
 best_estimates <- tabestimates %>% filter(bicc == min(bicc))
-write_csv(best_estimates, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "best_estimates.csv"))
