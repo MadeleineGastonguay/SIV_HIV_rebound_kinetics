@@ -66,3 +66,41 @@ out <- plot_model_building(mb)
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
        out$plot, width = 5, height = 7)
 
+# BICc 	432.1236, tlr7 is only significant on lambda
+# FIM condition number too big (170)
+# Big RSE for m (190) and Np (140) and ta (530)
+
+## Test alternative models ####
+
+# AM1: no tlr7 effect on p
+am1 <- list("lambda" = "tlr7",
+            "ta" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am1",
+  model_file, data_file,
+  igs, am1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 380.4348253   406.4348253   420.0136170   434.4389505     5.0000000     0.4156889 
+
+# Both effects significant, FIM cond number 100
+# Big RSE for m (250) and Np (120) and ta (93)
+
+# AM1: no tlr7 effect on ta
+am2 <- list("lambda" = "tlr7",
+            "p" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2",
+  model_file, data_file,
+  igs, am2,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 382.5816579   408.5816579   422.1604496   436.5857831     5.0000000     0.4095149 
