@@ -96,6 +96,9 @@ regime1 <- tabestimates %>%
 
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = regime1)
 
+plot_bicc_v_estimate(tabestimates %>% filter(run %in% regime1), remove_bicc_outliers = T, log10_x = F,
+                     out_folder = out_folder, project_name = project_name, file_addendum = "_low_m")
+
 ## Assess identifiability
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
