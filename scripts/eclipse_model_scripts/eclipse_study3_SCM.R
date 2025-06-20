@@ -41,7 +41,7 @@ create_project(model_file, data_file, headerTypes, error_model,
 
 # Use best estimates from IGS for initial conditions, to the 1st significant figure
 # Use 1 for standard deviations (if it's less than this, it's difficult for SAEM to jump around, and if it's too big than it's difficult to converge)
-igs <- read_csv(here("results", study, "IGS_no_cov_fixed_param", "best_estimates.csv")) %>% 
+igs <- read_csv(here(out_folder, "IGS_no_cov_fixed_param", "best_estimates.csv")) %>% 
   rowwise %>% 
   mutate(estimate = ifelse(grepl("pop", parameter), estimate, 1),
          estimate = signif(estimate, 1)) %>% 
