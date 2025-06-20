@@ -96,6 +96,9 @@ best_runs <- calculate_BICw(tabestimates) %>% filter(cumprob <= 0.95) %>% pull(r
 distinct(tabestimates, bicc, run) %>% ggplot(aes("BICc", bicc, color = run %in% best_runs)) + geom_beeswarm()
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = best_runs)
 
+plot_bicc_v_estimate(tabestimates %>% filter(run %in% best_runs), remove_bicc_outliers = T, log10_x = F,
+                     out_folder = out_folder, project_name = project_name, file_addendum = "_best_runs")
+
 ## Assess identifiability
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
