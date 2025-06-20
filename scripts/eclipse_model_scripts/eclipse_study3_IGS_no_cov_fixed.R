@@ -99,6 +99,7 @@ estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_
 
 pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
   print(parameter_plots(
     parameter, remove_bicc_outliers = F, remove_estimate_outliers = F,
     log10_tabestimates = NULL, tabestimates = tabestimates,
@@ -146,14 +147,19 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
-## Make sure best estimates are reasonable in terms of P:
-best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
-initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
-runScenario()
+# values of P are too large to be physiologically relevant ....
+# Could reduce NE to reduce m
+table_predictions %>% 
+  left_join(distinct(tabestimates, bicc, run)) %>% 
+  ggplot(aes(time, P_mode, group = factor(run), color = bicc)) + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
 
-variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
-variables %>% 
-  ggplot(aes(time, P_mode)) + 
-  geom_line() + 
-  facet_wrap(~id, scales = "free_y") + 
-  scale_y_log10() 
+## Reasonable RSE for the best estimates
+tabestimates %>% filter(bicc == min(bicc))
+
+# Save best estimates to use as initial conditions for SCM
+best_estimates <- tabestimates %>% filter(bicc == min(bicc))
+write_csv(best_estimates, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "best_estimates.csv"))

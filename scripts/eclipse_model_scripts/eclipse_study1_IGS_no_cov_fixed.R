@@ -90,6 +90,12 @@ if(RERUN){
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name)
 
+regime1 <- tabestimates %>% 
+  filter(parameter == "m_pop", estimate < 100, bicc > 435) %>% 
+  pull(run)
+
+plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = regime1)
+
 ## Assess identifiability
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
@@ -97,12 +103,32 @@ compare_estimates(tabestimates, remove_bicc_outliers = T,
                   out_folder = out_folder, project_name = project_name)
 estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
 
+## Look at low m regime only:
+correlate_estimates(tabestimates %>% filter(run %in% regime1), remove_bicc_outliers = T,
+                    out_folder = out_folder, project_name = project_name, file_addendum = "_low_m")
+compare_estimates(tabestimates %>% filter(run %in% regime1), remove_bicc_outliers = T,
+                  out_folder = out_folder, project_name = project_name, file_addendum = "_low_m")
+estimate_boxplots(tabestimates %>% filter(run %in% regime1), 
+                  out_folder = out_folder, project_name = project_name , file_addendum = "_low_m")
+
 pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
   print(parameter_plots(
     parameter, remove_bicc_outliers = F, remove_estimate_outliers = F,
     log10_tabestimates = NULL, tabestimates = tabestimates,
     tabiters = tabiters, phase = phase, initialvalues = initialvalues
+  ))
+}
+dev.off()
+
+pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "parameter_plots_low_m.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter_plots(
+    parameter, remove_bicc_outliers = F, remove_estimate_outliers = F,
+    log10_tabestimates = NULL, tabestimates = tabestimates %>% filter(run %in% regime1),
+    tabiters = tabiters %>% filter(run %in% regime1), phase = phase[regime1,], initialvalues = initialvalues  %>% filter(run %in% regime1)
   ))
 }
 dev.off()
@@ -134,6 +160,7 @@ indivFit %>%
   scale_color_viridis_c(direction = -1) 
 
 for(param in names(indivParams)[2:7]){
+  if(param %in% names(fixed)) next
   print(
     indivFit %>% 
       left_join(tabestimates %>% filter(parameter == str_interp("${param}_pop"))) %>%
@@ -146,14 +173,21 @@ for(param in names(indivParams)[2:7]){
 }
 dev.off()
 
-## Make sure best estimates are reasonable in terms of P:
-best <- tabestimates %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
-initialvalues %>% filter(run == best) %>% select(-run) %>% rename(name = parameter) %>% setPopulationParameterInformation()
-runScenario()
+## Second regime for avererimic animals has unrealistically high P
+table_predictions %>% 
+  left_join(distinct(tabestimates, bicc, run)) %>% 
+  ggplot(aes(time, P_mode, group = factor(run), color = bicc)) + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
 
-variables <- read_csv(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "tables.txt"))
-variables %>% 
-  ggplot(aes(time, P_mode)) + 
-  geom_line() + 
-  facet_wrap(~id, scales = "free_y") + 
-  scale_y_log10() 
+## Very big RSE for m and Np
+tabestimates %>% filter(bicc == min(bicc))
+
+## Very big RSE for m and some random effects
+tabestimates %>% filter(run %in% regime1) %>% filter(bicc == min(bicc))
+
+## Save best estimates from regime 1 to use as initial conditions for SCM
+best_estimates <- tabestimates %>% filter(run %in% regime1) %>% filter(bicc == min(bicc))
+write_csv(best_estimates, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "best_estimates.csv"))
