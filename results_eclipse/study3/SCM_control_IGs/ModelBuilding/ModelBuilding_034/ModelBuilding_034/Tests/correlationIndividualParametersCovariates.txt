@@ -1,0 +1,3 @@
+parameter,covariate,statistics,p-value,test
+lambda,beta_lambda_ab_1,-5.99938,3.98012e-07,t-Test
+m,beta_m_ab_1,4.36292,8.16912e-05,t-Test

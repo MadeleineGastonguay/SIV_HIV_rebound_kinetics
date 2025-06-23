@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+ta,beta_ta_ab_1,5.24722,4.75444e-06,t-Test
