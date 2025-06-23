@@ -64,5 +64,5 @@ mb <- getModelBuildingResults()
 out <- plot_model_building(mb)
 
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
-       out$plot, width = 5, height = 7)
+       out$plot, width = 10, height = 7)
 
