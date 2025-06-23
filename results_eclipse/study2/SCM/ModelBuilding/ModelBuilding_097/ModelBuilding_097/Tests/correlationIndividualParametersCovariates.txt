@@ -1,0 +1,8 @@
+parameter,covariate,statistics,p-value,test
+lambda,beta_lambda_vac_1,6.62886,1.78077e-07,t-Test
+betas,beta_betas_vac_1,8.50482,1.01799e-09,t-Test
+ta,beta_ta_vac_1,16.011,<2.2e-16,t-Test
+NPs,beta_NPs_intTLR7VAC_1,-3.60675,0.00107501,t-Test
+NPs,beta_NPs_vac_1,-7.91566,6.1791e-09,t-Test
+p,beta_p_vac_1,-11.7632,3.7004e-13,t-Test
+m,beta_m_vac_1,-5.25527,9.45524e-06,t-Test

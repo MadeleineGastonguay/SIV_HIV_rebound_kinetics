@@ -1,0 +1,16 @@
+eta1,eta2,coeff,statistics,p-value
+eta_lambda,eta_betas,0,-0.960957,0.343562
+eta_lambda,eta_ta,0,0.196359,0.845533
+eta_lambda,eta_NPs,0,-0.498382,0.621521
+eta_lambda,eta_p,0,0.668992,0.508154
+eta_lambda,eta_m,0,1.09713,0.280526
+eta_betas,eta_ta,0,0.0942431,0.925486
+eta_betas,eta_NPs,0,-0.945481,0.351285
+eta_betas,eta_p,0,-1.04993,0.30138
+eta_betas,eta_m,0,0.104968,0.917036
+eta_ta,eta_NPs,0,-2.34591,0.0251393
+eta_ta,eta_p,0,1.54733,0.131321
+eta_ta,eta_m,0,-0.284376,0.777899
+eta_NPs,eta_p,0,1.28464,0.207864
+eta_NPs,eta_m,0,3.61148,0.000998431
+eta_p,eta_m,0,-0.995119,0.32692

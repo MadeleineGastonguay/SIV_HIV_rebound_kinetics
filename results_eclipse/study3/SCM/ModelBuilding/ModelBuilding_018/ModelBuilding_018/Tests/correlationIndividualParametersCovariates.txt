@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+m,beta_m_inttlr7ab_1,11.5179,1.40117e-14,t-Test

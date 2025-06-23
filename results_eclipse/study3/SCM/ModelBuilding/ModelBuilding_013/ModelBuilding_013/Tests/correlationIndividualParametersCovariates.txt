@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+NPs,beta_NPs_tlr7_1,-2.63419,0.0117582,t-Test

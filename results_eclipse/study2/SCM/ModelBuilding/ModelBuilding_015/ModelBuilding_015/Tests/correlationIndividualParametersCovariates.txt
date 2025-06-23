@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+p,beta_p_tlr7_1,-6.8819,8.68022e-08,t-Test

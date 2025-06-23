@@ -1,0 +1,2 @@
+parameter,covariate,statistics,p-value,test
+NPs,beta_NPs_ab_1,-9.92212,1.41628e-12,t-Test

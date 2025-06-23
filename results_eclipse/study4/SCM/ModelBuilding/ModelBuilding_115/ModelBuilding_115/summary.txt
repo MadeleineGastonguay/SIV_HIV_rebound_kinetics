@@ -1,0 +1,91 @@
+********************************************************************************
+*                          ModelBuilding_115.mlxtran                           *
+*                          June 21, 2025 at 08:04:34                           *
+*                          Monolix version : 2024R1                            *
+********************************************************************************
+
+
+ESTIMATION OF THE POPULATION PARAMETERS ________________________________________
+
+Fixed Effects ----------------------------
+lambda_pop              :              100
+beta_lambda_intTLR7AB_1 :            -2.01
+betas_pop               :             77.9
+beta_betas_intTLR7VAC_1 :             1.53
+ta_pop                  :             6.49
+beta_ta_intTLR7VAC_1    :            0.253
+NPs_pop                 :            0.148
+beta_NPs_intTLR7AB_1    :            -4.23
+beta_NPs_intTLR7VAC_1   :            -2.63
+p_pop                   :                1
+beta_p_intTLR7AB_1      :           -0.732
+beta_p_intTLR7VAC_1     :            0.678
+m_pop                   :              326
+beta_m_intTLR7AB_1      :           -0.626
+
+Standard Deviation of the Random Effects -
+omega_lambda            :            0.784
+omega_betas             :            0.913
+omega_ta                :           0.0944
+omega_NPs               :             2.52
+omega_p                 :            0.816
+omega_m                 :            0.808
+
+Error Model Parameters -------------------
+a                       :            0.447
+
+Elapsed time (seconds):       89
+CPU time     (seconds):  4.7e+02
+Exploratory phase iterations:      219 (Autostop)
+Smoothing phase iterations:        220 (Autostop)
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE INDIVIDUAL PARAMETERS ________________________________________
+
+
+Estimation of the individual parameters by Conditional Distribution ------------
+                   min            Q1        median            Q3           max  shrinkage(%)
+lambda :          7.72          16.1          57.6           121           289          41.2
+betas  :          29.9            85           182           458      1.92e+03          23.6
+ta     :          5.94          6.53          6.84          8.41          8.66          62.5
+NPs    :      4.88e-05       0.00292        0.0292         0.109          27.8          15.3
+p      :         0.258         0.722          1.03          1.77          8.58          42.1
+m      :           115           218           302           432      1.24e+03          46.1
+
+Elapsed time (seconds):       69
+CPU time     (seconds):  3.6e+02
+Iterations:      326 (Autostop)
+
+ -------------------------------------------------------------------------------
+
+ _______________________________________________________________________________
+
+
+
+
+ESTIMATION OF THE LOG-LIKELIHOOD _______________________________________________
+
+                                                            (is)
+-2 x log-likelihood                       (OFV) :         825.08
+Akaike Information Criteria               (AIC) :         863.08
+Corrected Bayesian Information Criteria  (BICc) :         911.85
+Bayesian Information Criteria             (BIC) :         899.02
+
+Elapsed time                          (seconds) :          52.63
+CPU time                              (seconds) :         238.00
+MonteCarlo size (is):    10000 (Fixed number of iterations)
+
+
+[Importance Sampling] Standard error        : 0.390
+                      Sampling distribution : T-distribution with 5 degrees of freedom
+
+ _______________________________________________________________________________
+
+DATASET INFORMATION
+Number of individuals: 49
+Number of observations (vl): 637
+Number of doses: 0
+

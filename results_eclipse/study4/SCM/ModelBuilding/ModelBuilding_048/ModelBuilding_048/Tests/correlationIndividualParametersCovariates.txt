@@ -1,0 +1,4 @@
+parameter,covariate,statistics,p-value,test
+lambda,beta_lambda_intTLR7AB_1,-12.5553,<2.2e-16,t-Test
+NPs,beta_NPs_intTLR7AB_1,-5.43626,1.89813e-06,t-Test
+p,beta_p_intTLR7ABVAC_1,-0.554352,0.581967,t-Test

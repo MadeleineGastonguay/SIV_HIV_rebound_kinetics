@@ -1,0 +1,5 @@
+parameter,covariate,statistics,p-value,test
+ta,beta_ta_vac_1,8.94594,3.21439e-10,t-Test
+NPs,beta_NPs_vac_1,-9.65379,5.33039e-11,t-Test
+p,beta_p_vac_1,-5.28647,8.63413e-06,t-Test
+m,beta_m_vac_1,-7.69023,9.12637e-09,t-Test

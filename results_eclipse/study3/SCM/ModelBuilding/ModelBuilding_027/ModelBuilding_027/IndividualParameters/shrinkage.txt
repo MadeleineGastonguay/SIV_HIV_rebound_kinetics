@@ -1,0 +1,7 @@
+parameters,shrinkage_mean,shrinkage_condDist
+lambda,50.9072,-6.1949
+betas,56.3483,2.09725
+ta,18.718,-4.09182
+NPs,33.4537,2.60649
+p,77.5659,-4.26518
+m,27.1859,-2.20245

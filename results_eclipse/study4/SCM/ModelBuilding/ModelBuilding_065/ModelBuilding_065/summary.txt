@@ -1,0 +1,87 @@
+********************************************************************************
+*                          ModelBuilding_065.mlxtran                           *
+*                          June 21, 2025 at 03:39:23                           *
+*                          Monolix version : 2024R1                            *
+********************************************************************************
+
+
+ESTIMATION OF THE POPULATION PARAMETERS ________________________________________
+
+Fixed Effects ----------------------------
+lambda_pop              :              100
+beta_lambda_intTLR7AB_1 :            -2.15
+betas_pop               :              178
+ta_pop                  :             7.63
+NPs_pop                 :            0.133
+beta_NPs_intTLR7AB_1    :            -3.73
+beta_NPs_intTLR7VAC_1   :               -3
+p_pop                   :                1
+m_pop                   :              439
+beta_m_intTLR7AB_1      :            -0.96
+
+Standard Deviation of the Random Effects -
+omega_lambda            :             0.85
+omega_betas             :             1.11
+omega_ta                :            0.104
+omega_NPs               :             2.51
+omega_p                 :            0.898
+omega_m                 :            0.836
+
+Error Model Parameters -------------------
+a                       :            0.453
+
+Elapsed time (seconds):  1.4e+02
+CPU time     (seconds):  4.7e+02
+Exploratory phase iterations:      244 (Autostop)
+Smoothing phase iterations:        127 (Autostop)
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE INDIVIDUAL PARAMETERS ________________________________________
+
+
+Estimation of the individual parameters by Conditional Distribution ------------
+                   min            Q1        median            Q3           max  shrinkage(%)
+lambda :          7.86          14.8          57.8           137           462          41.1
+betas  :          42.8           153           220           358      1.52e+03          27.3
+ta     :          6.79          7.63          7.74          7.87          8.18          58.6
+NPs    :      0.000114       0.00222        0.0235         0.103            16          13.8
+p      :         0.287         0.703          1.18          1.92          7.32          36.5
+m      :           107           224           319           564      1.87e+03          45.2
+
+Elapsed time (seconds):       79
+CPU time     (seconds):  2.7e+02
+Iterations:      227 (Autostop)
+
+ -------------------------------------------------------------------------------
+
+ _______________________________________________________________________________
+
+
+
+
+ESTIMATION OF THE LOG-LIKELIHOOD _______________________________________________
+
+                                                            (is)
+-2 x log-likelihood                       (OFV) :         844.29
+Akaike Information Criteria               (AIC) :         874.29
+Corrected Bayesian Information Criteria  (BICc) :         915.49
+Bayesian Information Criteria             (BIC) :         902.67
+
+Elapsed time                          (seconds) :          89.53
+CPU time                              (seconds) :         272.00
+MonteCarlo size (is):    10000 (Fixed number of iterations)
+
+
+[Importance Sampling] Standard error        : 0.412
+                      Sampling distribution : T-distribution with 5 degrees of freedom
+
+ _______________________________________________________________________________
+
+DATASET INFORMATION
+Number of individuals: 49
+Number of observations (vl): 637
+Number of doses: 0
+

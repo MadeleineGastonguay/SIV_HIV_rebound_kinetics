@@ -1,0 +1,7 @@
+parameter,statistics,p-value,test
+lambda,0.972782,0.354934,Shapiro-Wilk
+betas,0.972181,0.294221,Shapiro-Wilk
+ta,0.969865,0.179305,Shapiro-Wilk
+NPs,0.964581,0.0825219,Shapiro-Wilk
+p,0.12954,0.0175161,Kolmogorov-Smirnov
+m,0.974141,0.529468,Shapiro-Wilk

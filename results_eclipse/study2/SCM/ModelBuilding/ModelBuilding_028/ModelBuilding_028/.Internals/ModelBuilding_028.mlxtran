@@ -1,0 +1,89 @@
+<DATAFILE>
+
+[FILEINFO]
+file={path='../../../../../../../data/derived/STUDY2_DATA.txt'}
+delimiter = tab
+header={id, time, vl, censor, tlr7, vac, intTLR7VAC}
+
+[CONTENT]
+id = {use=identifier}
+time = {use=time}
+vl = {use=observation, type=continuous}
+censor = {use=censored}
+tlr7 = {use=covariate, type=categorical}
+vac = {use=covariate, type=categorical}
+intTLR7VAC = {use=covariate, type=categorical}
+
+<MODEL>
+
+[COVARIATE]
+input = {intTLR7VAC, tlr7, vac}
+
+intTLR7VAC = {type=categorical, categories={'0', '1'}}
+tlr7 = {type=categorical, categories={'0', '1'}}
+vac = {type=categorical, categories={'0', '1'}}
+
+[INDIVIDUAL]
+input = {NPs_pop, omega_NPs, betas_pop, omega_betas, lambda_pop, omega_lambda, m_pop, omega_m, p_pop, omega_p, ta_pop, omega_ta, vac, beta_NPs_vac_1, beta_ta_vac_1}
+
+vac = {type=categorical, categories={'0', '1'}}
+
+DEFINITION:
+NPs = {distribution=logNormal, typical=NPs_pop, covariate=vac, coefficient={0, beta_NPs_vac_1}, sd=omega_NPs}
+betas = {distribution=logNormal, typical=betas_pop, sd=omega_betas}
+lambda = {distribution=logNormal, typical=lambda_pop, sd=omega_lambda}
+m = {distribution=logNormal, typical=m_pop, sd=omega_m}
+p = {distribution=logNormal, typical=p_pop, sd=omega_p}
+ta = {distribution=logNormal, typical=ta_pop, covariate=vac, coefficient={0, beta_ta_vac_1}, sd=omega_ta}
+
+[LONGITUDINAL]
+input = {a}
+
+file = '../../../../../../../model/2regime_model_delay.txt'
+
+DEFINITION:
+vl = {distribution=normal, prediction=tot, errorModel=constant(a)}
+
+<FIT>
+data = 'vl'
+model = vl
+
+<PARAMETER>
+NPs_pop = {value=3, method=MLE}
+a = {value=1, method=MLE}
+beta_NPs_vac_1 = {value=0, method=MLE}
+beta_ta_vac_1 = {value=0, method=MLE}
+betas_pop = {value=8, method=MLE}
+lambda_pop = {value=100, method=FIXED}
+m_pop = {value=100, method=MLE}
+omega_NPs = {value=1, method=MLE}
+omega_betas = {value=1, method=MLE}
+omega_lambda = {value=1, method=MLE}
+omega_m = {value=1, method=MLE}
+omega_p = {value=1, method=MLE}
+omega_ta = {value=1, method=MLE}
+p_pop = {value=1, method=FIXED}
+ta_pop = {value=0.9, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = conditionalMean)
+fim(run = false,method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+
+[PLOTS]
+run = false
+plots = {indfits = {selected = true}, parameterdistribution = {selected = true}, obspred = {selected = true}, covariancemodeldiagnosis = {selected = true}, covariatemodeldiagnosis = {selected = true}, vpc = {selected = true}, residualsscatter = {selected = true}, residualsdistribution = {selected = true}, randomeffects = {selected = true}, saemresults = {selected = true}}
+
+[SETTINGS]
+GLOBAL:
+exportpath = '../'
+
+POPULATION:
+burniniterations = 50
+smoothingiterations = 500
+exploratoryiterations = 1000
+simulatedannealingiterations = 1000
+

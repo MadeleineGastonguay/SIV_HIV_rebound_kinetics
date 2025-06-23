@@ -1,0 +1,95 @@
+<DATAFILE>
+
+[FILEINFO]
+file={path='../../../../../../../data/source/VACABTLR7_DATA.txt'}
+delimiter = tab
+header={id, time, vl, censor, tlr7, ab, vac, intTLR7VAC, intTLR7AB, intTLR7ABVAC}
+
+[CONTENT]
+id = {use=identifier}
+time = {use=time}
+vl = {use=observation, type=continuous}
+censor = {use=censored}
+intTLR7VAC = {use=covariate, type=categorical}
+intTLR7AB = {use=covariate, type=categorical}
+intTLR7ABVAC = {use=covariate, type=categorical}
+
+<MODEL>
+
+[COVARIATE]
+input = {intTLR7AB, intTLR7ABVAC, intTLR7VAC}
+
+intTLR7AB = {type=categorical, categories={'0', '1'}}
+intTLR7ABVAC = {type=categorical, categories={'0', '1'}}
+intTLR7VAC = {type=categorical, categories={'0', '1'}}
+
+[INDIVIDUAL]
+input = {NPs_pop, omega_NPs, betas_pop, omega_betas, lambda_pop, omega_lambda, m_pop, omega_m, p_pop, omega_p, ta_pop, omega_ta, intTLR7AB, beta_lambda_intTLR7AB_1, beta_NPs_intTLR7AB_1, intTLR7VAC, beta_NPs_intTLR7VAC_1, beta_betas_intTLR7VAC_1, intTLR7ABVAC, beta_lambda_intTLR7ABVAC_1, beta_ta_intTLR7VAC_1}
+
+intTLR7AB = {type=categorical, categories={'0', '1'}}
+intTLR7VAC = {type=categorical, categories={'0', '1'}}
+intTLR7ABVAC = {type=categorical, categories={'0', '1'}}
+
+DEFINITION:
+NPs = {distribution=logNormal, typical=NPs_pop, covariate={intTLR7AB, intTLR7VAC}, coefficient={{0, beta_NPs_intTLR7AB_1}, {0, beta_NPs_intTLR7VAC_1}}, sd=omega_NPs}
+betas = {distribution=logNormal, typical=betas_pop, covariate=intTLR7VAC, coefficient={0, beta_betas_intTLR7VAC_1}, sd=omega_betas}
+lambda = {distribution=logNormal, typical=lambda_pop, covariate={intTLR7AB, intTLR7ABVAC}, coefficient={{0, beta_lambda_intTLR7AB_1}, {0, beta_lambda_intTLR7ABVAC_1}}, sd=omega_lambda}
+m = {distribution=logNormal, typical=m_pop, sd=omega_m}
+p = {distribution=logNormal, typical=p_pop, sd=omega_p}
+ta = {distribution=logNormal, typical=ta_pop, covariate=intTLR7VAC, coefficient={0, beta_ta_intTLR7VAC_1}, sd=omega_ta}
+
+[LONGITUDINAL]
+input = {a}
+
+file = '../../../../../../../model/2regime_model_delay.txt'
+
+DEFINITION:
+vl = {distribution=normal, prediction=tot, errorModel=constant(a)}
+
+<FIT>
+data = 'vl'
+model = vl
+
+<PARAMETER>
+NPs_pop = {value=0.005, method=MLE}
+a = {value=1, method=MLE}
+beta_NPs_intTLR7AB_1 = {value=0, method=MLE}
+beta_NPs_intTLR7VAC_1 = {value=0, method=MLE}
+beta_betas_intTLR7VAC_1 = {value=0, method=MLE}
+beta_lambda_intTLR7ABVAC_1 = {value=0, method=MLE}
+beta_lambda_intTLR7AB_1 = {value=0, method=MLE}
+beta_ta_intTLR7VAC_1 = {value=0, method=MLE}
+betas_pop = {value=100, method=MLE}
+lambda_pop = {value=100, method=FIXED}
+m_pop = {value=600, method=MLE}
+omega_NPs = {value=1, method=MLE}
+omega_betas = {value=1, method=MLE}
+omega_lambda = {value=1, method=MLE}
+omega_m = {value=1, method=MLE}
+omega_p = {value=1, method=MLE}
+omega_ta = {value=1, method=MLE}
+p_pop = {value=1, method=FIXED}
+ta_pop = {value=8, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = conditionalMean)
+fim(run = false,method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+
+[PLOTS]
+run = false
+plots = {indfits = {selected = true}, parameterdistribution = {selected = true}, obspred = {selected = true}, covariancemodeldiagnosis = {selected = true}, covariatemodeldiagnosis = {selected = true}, vpc = {selected = true}, residualsscatter = {selected = true}, residualsdistribution = {selected = true}, randomeffects = {selected = true}, saemresults = {selected = true}}
+
+[SETTINGS]
+GLOBAL:
+exportpath = '../'
+
+POPULATION:
+burniniterations = 50
+smoothingiterations = 500
+exploratoryiterations = 1000
+simulatedannealingiterations = 1000
+
