@@ -90,7 +90,7 @@ alt_mod(
 # Both effects significant, FIM cond number 100
 # Big RSE for m (250) and Np (120) and ta (93)
 
-# AM1: no tlr7 effect on ta
+# AM2: no tlr7 effect on ta
 am2 <- list("lambda" = "tlr7",
             "p" = "tlr7")
 
@@ -104,3 +104,19 @@ alt_mod(
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
 # 382.5816579   408.5816579   422.1604496   436.5857831     5.0000000     0.4095149 
+
+# AM2: no tlr7 effect on m instead of p
+am3 <- list("lambda" = "tlr7",
+            "ta" = "tlr7",
+            "m" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3",
+  model_file, data_file,
+  igs, am3,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 376.3554260   404.3554260   418.9787401   433.4040737     5.0000000     0.5341272 
