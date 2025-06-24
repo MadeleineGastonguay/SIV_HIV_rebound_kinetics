@@ -67,10 +67,12 @@ for(i in 1:nits){
 
 
 if(!file.exists(here(out_folder, "initial_values.csv"))) write_csv(initialvalues, here(out_folder, "initial_values.csv"))
+if(!file.exists(here(out_folder, "initial_values2.csv"))) write_csv(initialvalues, here(out_folder, "initial_values2.csv"))
 
 predefined_initialvalues <- read_csv(here(out_folder, "initial_values.csv"))
+predefined_initialvalues2 <- read_csv(here(out_folder, "initial_values2.csv"))
 
-predefined_initialvalues %>% 
+rbind(predefined_initialvalues, predefined_initialvalues2) %>% 
   ggplot(aes(parameter, initialValue)) +
   geom_boxplot() + 
   facet_wrap(~parameter, scales = "free")
@@ -121,17 +123,78 @@ for(parameter in getPopulationParameterInformation()$name){
 }
 dev.off()
 
-plot_vs_rses(tabestimates, out_folder, project_name)
 
+# There are two regimes for this model
 plot_bicc_v_estimate(
   tabestimates, log10_x = F,
   out_folder = out_folder, project_name = project_name
 )
 
+low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 10) %>% pull(run)
 
-correlate_estimates(tabestimates, 
-                    out_folder = out_folder, project_name = project_name)
+plot_vs_rses(tabestimates, out_folder, project_name)
 
+correlate_estimates(
+  tabestimates %>% filter(run %in% low_m_regime), 
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_low_m"
+)
+
+correlate_estimates(
+  tabestimates %>% filter(run %in% low_m_regime, grepl("pop", parameter))
+)
+
+compare_estimates(
+  tabestimates %>% filter(run %in% low_m_regime), 
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_low_m"
+)
+
+compare_estimates(
+  tabestimates %>% filter(!run %in% low_m_regime), 
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_big_m"
+)
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
+
+table_predictions %>% 
+  ggplot(aes(time, V_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, P_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, E_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, I_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, T_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+dev.off()
 
 
 # AM1 #####
@@ -152,6 +215,14 @@ parameter_result_am1 <- initial_guess_sampling(
   record_condition_number = TRUE, record_table = TRUE
 )
 
+# Run convergence for narrower range of values
+parameter_result_am1.2 <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = T, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues2, 
+  record_pvals = TRUE, record_indiv_params = TRUE,
+  record_condition_number = TRUE, record_table = TRUE
+)
 
 for(name in names(parameter_result_am1)){
   assign(name, parameter_result_am1[[name]])
@@ -161,6 +232,25 @@ save(list = names(parameter_result_am1),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+max_run <- max(tabestimates$run)
+
+# combine elements of parameter_results_am3.2 with parameter_results_am3.2 and update the run number in results 2 to add 50 
+tabestimates <- rbind(tabestimates, parameter_result_am1.2$tabestimates %>% mutate(run = run + max_run))
+tabiters <- rbind(tabiters, parameter_result_am1.2$tabiters %>% mutate(run = run + max_run))
+phase <- rbind(phase, parameter_result_am1.2$phase)
+initialvalues <- rbind(initialvalues, parameter_result_am1.2$initialvalues %>% mutate(run = run + max_run))
+shrinkage <- rbind(shrinkage, parameter_result_am1.2$shrinkage %>% mutate(run = run + max_run))
+indivParams <- rbind(indivParams, parameter_result_am1.2$indivParams %>% mutate(run = run + max_run))
+indivFit <- rbind(indivFit, parameter_result_am1.2$indivFit %>% mutate(run = run + max_run))
+table_predictions <- rbind(table_predictions, parameter_result_am1.2$table_predictions %>% mutate(run = run + max_run))
+pvals <- rbind(pvals, parameter_result_am1.2$pvals %>% mutate(run = run + max_run))
+condition_number <- rbind(condition_number, parameter_result_am1.2$condition_number %>% mutate(run = run + max_run))
+
+save(list = names(parameter_result_am1.2),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS_100its.RData"))
+
+
 
 pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
@@ -178,18 +268,100 @@ for(parameter in getPopulationParameterInformation()$name){
 }
 dev.off()
 
-plot_vs_rses(tabestimates, out_folder, project_name)
 
+# There is clearly two parameter regimes: high m / low ta and low ta / high m
+# The low ta regime has less measurement noise and smaller random effects for m
 plot_bicc_v_estimate(
   tabestimates, log10_x = F,
   out_folder = out_folder, project_name = project_name
 )
 
-plot_bicc_v_estimate(tabestimates)
+low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 20) %>% pull(run)
 
-correlate_estimates(tabestimates, 
-                    out_folder = out_folder, project_name = project_name)
+plot_vs_rses(tabestimates %>% filter(run %in% low_m_regime), out_folder, project_name, 
+             file_addendum = "_low_m")
 
+correlate_estimates(
+  tabestimates %>% filter(run %in% low_m_regime), 
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_low_m"
+)
+
+correlate_estimates(
+  tabestimates %>% filter(run %in% low_m_regime, grepl("pop", parameter))
+)
+
+compare_estimates(
+  tabestimates %>% filter(run %in% low_m_regime),
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_low_m"
+)
+
+compare_estimates(
+  tabestimates %>% filter(!run %in% low_m_regime),
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_big_m"
+)
+
+estimate_boxplots(tabestimates %>% filter(run %in% low_m_regime), 
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_low_m")
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots_low_m.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates %>% filter(run %in% low_m_regime), tabiters %>% filter(run %in% low_m_regime),
+      phase[low_m_regime,], initialvalues %>% filter(run %in% low_m_regime)
+    )
+  )
+}
+dev.off()
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
+
+table_predictions %>% 
+  ggplot(aes(time, V_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, P_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, E_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, I_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, T_mode, color = run %in% low_m_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+dev.off()
 
 
 # AM3 #####
@@ -210,15 +382,44 @@ parameter_results_am3 <- initial_guess_sampling(
   record_condition_number = TRUE, record_table = TRUE
 )
 
+parameter_results_am3.2 <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = T, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues2, 
+  record_pvals = TRUE, record_indiv_params = TRUE,
+  record_condition_number = TRUE, record_table = TRUE
+)
+
 
 for(name in names(parameter_results_am3)){
   assign(name, parameter_results_am3[[name]])
 }
 
+
 save(list = names(parameter_results_am3),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+max_run <- max(tabestimates$run)
+
+# combine elements of parameter_results_am3.2 with parameter_results_am3.2 and update the run number in results 2 to add 50 
+tabestimates <- rbind(tabestimates, parameter_results_am3.2$tabestimates %>% mutate(run = run + max_run))
+tabiters <- rbind(tabiters, parameter_results_am3.2$tabiters %>% mutate(run = run + max_run))
+phase <- rbind(phase, parameter_results_am3.2$phase)
+initialvalues <- rbind(initialvalues, parameter_results_am3.2$initialvalues %>% mutate(run = run + max_run))
+shrinkage <- rbind(shrinkage, parameter_results_am3.2$shrinkage %>% mutate(run = run + max_run))
+indivParams <- rbind(indivParams, parameter_results_am3.2$indivParams %>% mutate(run = run + max_run))
+indivFit <- rbind(indivFit, parameter_results_am3.2$indivFit %>% mutate(run = run + max_run))
+table_predictions <- rbind(table_predictions, parameter_results_am3.2$table_predictions %>% mutate(run = run + max_run))
+pvals <- rbind(pvals, parameter_results_am3.2$pvals %>% mutate(run = run + max_run))
+condition_number <- rbind(condition_number, parameter_results_am3.2$condition_number %>% mutate(run = run + max_run))
+
+save(list = names(parameter_results_am3.2),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS_100its.RData"))
+
+load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS_100its.RData"))
+
 
 pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
@@ -237,22 +438,69 @@ for(parameter in getPopulationParameterInformation()$name){
 dev.off()
 
 
-
+# two regimes
 plot_bicc_v_estimate(
   tabestimates, log10_x = F,
   out_folder = out_folder, project_name = project_name
 )
 
-correlate_estimates(tabestimates, 
-                    out_folder = out_folder, project_name = project_name)
+low_ta_regime <- tabestimates %>% filter(parameter == "ta_pop", estimate <= 0.4) %>% pull(run)
 
-correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
+correlate_estimates(
+  tabestimates %>% filter(run %in% low_ta_regime), 
+  out_folder = out_folder, project_name = project_name,
+  file_addendum = "_low_ta")
 
-compare_estimates(tabestimates, 
-                  out_folder = out_folder, project_name = project_name)
+# No lingering correlations
+correlate_estimates(tabestimates %>% filter(run %in% low_ta_regime, grepl("pop", parameter)))
+
+compare_estimates(tabestimates %>% filter(run %in% low_ta_regime), 
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_low_ta")
+
+estimate_boxplots(tabestimates %>% filter(run %in% low_ta_regime), 
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_low_ta")
 
 
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
+table_predictions %>% 
+  ggplot(aes(time, V_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
+  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
 
+table_predictions %>% 
+  ggplot(aes(time, P_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, E_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, I_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+table_predictions %>% 
+  ggplot(aes(time, T_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  labs(color = "low m, low ta regime")
+
+dev.off()
 
 
 
@@ -265,13 +513,24 @@ all_initialvalues <- NULL
 all_pvals <- NULL
 all_indivParams <- NULL
 all_indivFit <- NULL
+all_condition_numbers <- NULL
+all_table_predictions <- NULL
+all_shrinkage <- NULL
 for(am in ams){
-  load(here(out_folder, str_interp("IGS_${am}"), "IGS.RData")) 
+  file <- here(out_folder, str_interp("IGS_${am}"), "IGS_100its.RData")
+  if(file.exists(file)){
+    load(file)
+  }else{
+    load(here(out_folder, str_interp("IGS_${am}"), "IGS.RData")) 
+  }
   all_tabestimates <- rbind(all_tabestimates, tabestimates %>% mutate(am = am))
   all_initialvalues <- rbind(all_initialvalues, initialvalues %>% mutate(am = am))
   all_pvals <- rbind(all_pvals, pvals %>% mutate(am = am))
   all_indivParams <- rbind(all_indivParams, indivParams %>% mutate(am = am))
   all_indivFit <- rbind(all_indivFit, indivFit %>% mutate(am = am))
+  all_condition_numbers <- rbind(all_condition_numbers, condition_number %>% mutate(am = am))
+  all_table_predictions <- rbind(all_table_predictions, table_predictions %>% mutate(am = am))
+  all_shrinkage <- rbind(all_shrinkage, shrinkage %>% mutate(am = am))
 }
 
 all_tabestimates <- all_tabestimates %>% 
@@ -285,7 +544,6 @@ all_tabestimates <- all_tabestimates %>%
 all_tabestimates %>% select(parameter, am, estimate, best, run)  %>% 
   left_join(all_initialvalues) %>%
   filter(grepl("pop", parameter)) %>% 
-  # mutate(am2 = factor(am, levels = ams[-1], labels = c("Base model", "Alternative Np", "Alternative ta", "Alternative m"))) %>% 
   ggplot(aes(initialValue, estimate, color = am, shape = am == best)) + 
   geom_point(alpha = 0.75, size = 2) + 
   facet_wrap(~parameter, scales = "free") + 
@@ -298,13 +556,24 @@ all_tabestimates %>%
   distinct(run, best) %>% 
   count(best)
 
-# best      n
-# am1      75
-# am2      25
+# best            n
+# final_model    37
+# am1             3
+# am3            10
+
+## filter to low ta, low m, lower measurement error regime:
+regime1 <- all_tabestimates %>% filter(parameter == "a", estimate < 0.32) %>%
+  mutate(t = paste(am, run, sep = ".")) %>% pull(t)
+
+all_tabestimates %>% 
+  ggplot(aes(estimate, bicc, color = am, shape = paste(am, run, sep = ".") %in% regime1)) + 
+  geom_point() + facet_wrap(~parameter, scales = "free_x")
+
 
 
 ## out of 100 runs, the number of times each model was less than 2 BICc from the best model
 all_tabestimates %>% distinct(run, bicc, am, best) %>% 
+  filter(paste(am, run, sep = ".") %in% regime1) %>% 
   rename(best_model = best) %>% 
   group_by(run) %>% 
   mutate(best = min(bicc),
@@ -313,18 +582,11 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
   filter(equal_to_best) %>% 
   count(am, equal_to_best) 
 
-# am    equal_to_best     n
-# am1   TRUE             80
-# am2   TRUE             51
+# am          equal_to_best     n
+# 1 final_model TRUE              9
+# 2 am1         TRUE             11
+# 3 am3         TRUE             25
 
-## out of 100 runs, AM2 significantly out-performed AM1 20 times
-all_tabestimates %>% distinct(run, bicc, am, best) %>% 
-  pivot_wider(names_from = am, values_from = bicc) %>% 
-  count(am1 > (am2 + 2))
-
-# `am1 > (am2 + 2)`     n
-# FALSE                80
-# TRUE                 20
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
 
@@ -341,217 +603,156 @@ all_tabestimates_bicc %>%
   labs(x = "Model", y = "BICc", color = "") +
   theme(legend.position = "bottom") +
   coord_flip() + 
-  annotate(geom = "text", x = c(1:2), y = 470, label = paste(rev(ncovar$n), "covariates"), hjust = 1)
+  annotate(geom = "text", x = c(1:nrow(ncovar)), y = 440, label = paste((ncovar$n), "covariates"), hjust = 1) + 
+  facet_wrap(~ (paste(am, run, sep = ".") %in% regime1), scales = "free_x")
 
 
-
-# How many times does AM2 outperform AM1?
-plot_df <- all_tabestimates %>% 
-  distinct(run, best, bicc, am) %>% 
-  pivot_wider(names_from = am, values_from = bicc) %>%
-  mutate(color = case_when(am1 > (am2 + 2) ~ "Alternative model better", am2 > (am1 + 2) ~ "SCM model better", TRUE ~ "Equal performance"))
-
-# There are two clusters where AM2 performs better than AM1:
-AM2_better_c1 <- plot_df %>% filter(am2 < 430 & am1 > 430 & am1 > (am2 + 2) ) %>% pull(run) %>% unique 
-AM2_better_c2 <- plot_df %>% filter(am2 > 430 & am1 > 438 & am1 > (am2 + 2 )) %>% pull(run) %>% unique 
-
-plot_df %>%
-  mutate(shape = ifelse(run %in% AM2_better_c1, "Larger m_pop in AM2", 
-                        ifelse(run %in% AM2_better_c2, "Larger TLR7:lambda in AM2", "AM1 equal or better"))) %>%
-  ggplot(aes(am1, am2)) + 
-  
-  geom_abline(alpha = 0.7) +
-  geom_abline(intercept = -2, lty = "dashed", alpha = 0.7) +
-  geom_abline(intercept = 2, lty = "dashed", alpha = 0.7)  +
-  
-  # Shaded regions using geom_ribbon
-  geom_ribbon(aes(ymin = -Inf, ymax = am1 - 2), fill = "darkred", alpha = 0.1) +  # Below bottom dashed line
-  annotate("text", x = 427, y = 420, label = str_interp("Alternative\nmodel better\n(${count(plot_df, color)$n[1]})"), size = 4, color = "darkred", fontface = "bold") +
-  
-  geom_ribbon(aes(ymin = am1 - 2, ymax = am1 + 2), fill = "darkgreen", alpha = 0.1) +  # Between dashed lines
-  annotate("text", x = 430, y = 430, label = str_interp("Equal\nperformance\n(${count(plot_df, color)$n[2]})"), size = 4, color = "darkgreen", fontface = "bold") +
-  
-  geom_ribbon(aes(ymin = am1 + 2, ymax = Inf), fill = "darkgray", alpha = 0.1) +   # Above top dashed line
-  annotate("text", x = 425, y = 450, label = str_interp("SCM model better\n(${count(plot_df, color)$n[3]})"), size = 4, color = "darkgray", fontface = "bold") +
-  
-  geom_point(data = . %>% filter(color != "Alternative model better"), aes(color = color), alpha = 0.7, size = 2) +
-  geom_point(data = . %>% filter(color == "Alternative model better"), aes(color = color, shape = shape), alpha = 0.7, size = 2) +
-  labs(x = "TLR7 on ta and lambda", y = "TLR7 on ta, lambda, and Np", shape = "") +
-  scale_color_manual(values = c("darkred", "darkgreen", "darkgray")) + 
-  scale_shape_manual(values = c(15, 17)) +
-  guides(color = "none") 
-
-# AM2 outperforms AM1 for two different reasons:
-# If both models assume delayed reactivation is the mecnaism for control in aviremic monkeys,
-# AM2 does better when AM1 estimates a smaller TLR7 effect on lambda (cluster 1)
-# If AM2 assumes immune control is the mechanism for control in aviremic monkeys,
-# it out performs AM1 when AM1 estimates a smaller m_pop (meaning it infers dealyed rebound as the mechanism)
-all_tabestimates %>% 
-  select(run, parameter, estimate,  am) %>% 
-  pivot_wider(names_from = am, values_from = estimate) %>% 
-  mutate(color = ifelse(run %in% AM2_better_c1, "AM2 better because of m_pop", 
-                        ifelse(run %in% AM2_better_c2, "AM2 better because of TLR7:lambda", "AM1 equal or better"))) %>%
-  ggplot(aes(am1, am2, color = color)) + 
-  geom_point() + 
-  geom_abline() +
-  facet_wrap(~parameter, scales = "free")
-
-all_indivFit %>% filter(run %in% AM2_better_c1) %>% 
-  ggplot(aes(time, indivPred_mode, color = am, group = interaction(id, run, am))) + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id)
-
-all_indivFit %>% filter(run %in% AM2_better_c2) %>% 
-  ggplot(aes(time, indivPred_mode, color = am, group = interaction(id, run, am))) + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id)
-
-immune_control_am1 <- all_indivFit %>% 
-  filter(am == "am1", id == 15, time < 75, indivPred_mode > 0.7) %>% 
-  pull(run) %>% unique
-immune_control_am2 <- all_indivFit %>% 
-  filter(am == "am2", id == 15, time < 75, indivPred_mode > 0.7) %>% 
-  pull(run) %>% unique
-
-
-# When both models infer mechanism of control to be delayed reactivation, the model with a TLR7 effect 
-# on Np signicantly outperforms the model without one in only 8% of runs
-plot_df %>% filter((!run %in% immune_control_am1) & (!run %in% immune_control_am2)) %>% 
-  count(color)
-
-# If both models infer the mechanism of control is a delay in rebound, AM2 outperforms AM1 
-# when AM1 estimates a smaller TLR7 effect on lambda
-all_tabestimates %>% 
-  left_join(distinct(plot_df, run, color)) %>% 
-  mutate(both_delayed = (!run %in% immune_control_am1) & (!run %in% immune_control_am2)) %>% 
-  filter(both_delayed) %>% 
-  select(parameter, estimate, run, am, color) %>%
-  pivot_wider(names_from = am, values_from = estimate) %>% 
-  ggplot(aes(am1, am2, color = color)) +
-  geom_abline() +
-  geom_point(alpha = 0.7, size = 2) + 
-  facet_wrap(~parameter, scales = "free") 
-  
-
-# The TLR7 effect on Np is never significant ####
+# How frequently is the tlr7 effect on m and p signficant?
 all_pvals %>% 
-  mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
-  ggplot(aes(am, log10(padj), color = padj >= 0.05)) + 
-  ggbeeswarm::geom_beeswarm() + 
+  mutate(padj = p.adjust(p.value, method = "fdr"),
+         regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  ggplot(aes(am, log10(padj), color = regime1)) + 
+  ggbeeswarm::geom_beeswarm(dodge.width = 0.5) + 
   facet_wrap(~parameter, ncol = 3) +
-  geom_hline(yintercept = log10(0.05)) +
-  scale_color_manual(values = c("black", "gray")) + 
-  theme(legend.position = "none")
+  geom_hline(yintercept = log10(0.05)) + 
+  labs(color = "Low m, low ta regime")
+# scale_color_manual(values = c("black", "gray")) + 
+# theme(legend.position = "none")
 
-
+# tlr7 effect on p in final SCM model is never significant in the desired regime
+# tlr7 effect on m in am 3 is signficant less than 50% of the time in the desired regime
+all_pvals %>% 
+  filter(am != "final_model") %>% 
+  mutate(padj = p.adjust(p.value, method = "fdr"),
+         regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  left_join(distinct(., am, run, regime1) %>% add_count(am, regime1, name = "n_r1")) %>% 
+  filter(padj < 0.05) %>% 
+  count(regime1,parameter, am , n_r1)  %>% 
+  mutate(p = n/n_r1*100)
 
 # Look at size of random effects for each model ####
 # There's no model with clearly large random effects
 
 all_tabestimates %>% filter(grepl("omega", parameter)) %>% 
-  mutate(am = factor(am, levels = c("am1", "am2"), labels = c("no TLR7 effect on Np", "TLR7 effect on Np")),
-    parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
+  mutate(parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
   ggplot(aes(am, exp(estimate))) + 
   geom_violin() +
   # geom_boxplot(width = 0.1) +
   ggbeeswarm::geom_beeswarm(aes(color = bicc), alpha = 0.7) + 
-  facet_wrap(~parameter, scales = "free_x") + 
+  facet_wrap(paste(am, run, sep = ".") %in% regime1 ~parameter,  nrow = 2) + 
   coord_flip() + 
   annotate(geom="point", x = 1, y = 1, shape = NA)  +
   labs(y = "Random effect estimate (fold change)", x = "Model") + 
+  color_bicc() +
+  scale_y_log10()
+
+all_tabestimates %>% filter(grepl("omega", parameter)) %>% 
+  mutate(parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
+  ggplot(aes(am, (estimate))) + 
+  geom_violin() +
+  # geom_boxplot(width = 0.1) +
+  ggbeeswarm::geom_beeswarm(aes(color = bicc), alpha = 0.7) + 
+  facet_wrap(paste(am, run, sep = ".") %in% regime1 ~parameter,  nrow = 2) + 
+  coord_flip() + 
+  annotate(geom="point", x = 1, y = 1, shape = NA)  +
+  labs(y = "Random effect estimate", x = "Model") + 
   color_bicc()
 
 
+all_condition_numbers %>%
+  mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  ggplot(aes(am, condition_number, color = regime1)) +
+  geom_violin() + 
+  geom_beeswarm(dodge.width = 0.9) + 
+  geom_beeswarm(data =. %>% left_join(distinct(all_tabestimates, am, run, bicc)) %>% 
+                  group_by(am, regime1) %>% filter(bicc == min(bicc)),
+                dodge.width = 0.9, shape = 17, size = 4) + 
+  scale_y_log10() +
+  geom_hline(yintercept = 100, linetype = "dashed") +
+  coord_flip()
 
-all_indivParams %>% 
-  pivot_longer(!c(id, run, am), names_to = "parameter", values_to = "EBE") %>% 
-  pivot_wider(names_from = am, values_from = EBE) %>% 
-  left_join(distinct(data, id, tlr7, vac) %>% mutate(id = as.character(id))) %>% 
-  ggplot(aes(am1, am3, color = interaction(tlr7,vac), fill = interaction(tlr7,vac))) + 
+all_indivFit %>%
+  left_join(distinct(data, id, tlr7)) %>% 
+  filter(am != "final_model") %>% 
+  mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  ggplot(aes(time, popPred, color = am, group = interaction(am, run))) +
+  geom_point(data = data, inherit.aes = F, aes(time, vl), alpha = 0.5) +
+  geom_line(alpha = 0.5) + 
+  facet_grid(regime1~tlr7, labeller = "label_both")
+
+all_indivFit %>%
+  left_join(distinct(data, id, tlr7)) %>% 
+  left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
+  mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(am != "final_model", regime1) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) %>% 
+  ggplot(aes(time, indivPred_mode, color = am, group = interaction(am, run))) +
+  geom_point(data = data, inherit.aes = F, aes(time, vl), alpha = 0.5) +
+  geom_line(alpha = 0.5, linewidth = 1) + 
+  facet_wrap(~id)
+
+
+all_indivParams %>%
+  left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
+  left_join(distinct(data, id, tlr7) %>% mutate(id = as.character(id))) %>% 
+  mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(am != "final_model", regime1) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) %>% 
+  select(-run, -bicc, -regime1) %>% 
+  pivot_longer(!c(id, am, tlr7), names_to = "parameter") %>% 
+  pivot_wider(names_from = am) %>% 
+  ggplot(aes(am1, am3, color = factor(tlr7))) + 
+  geom_point() + 
   geom_abline() + 
-  geom_point(size = 2, alpha = 0.5) + 
-  geom_point(data = bests, shape = 24, size = 2, color = "black") +
-  facet_wrap(~parameter, scales = "free") + 
-  scale_x_log10() + scale_y_log10()
+  facet_wrap(~parameter, scales = "free")  + 
+  scale_x_log10() +
+  scale_y_log10()
 
+pop_param <- all_tabestimates %>% 
+  mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(regime1, am != "final_model") %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) 
 
-plot_indiv_traj <- function(indivDF, data, ID, param, option = "A", 
-                            boxplot_coord = c(NA, NA, 0, 3), boxplot_position = "inset",
-                            log_boxplot = F, log10_color = F){
-  plot_df <- indivDF %>% filter(id == ID) %>% 
-    rename(color = str_interp("indivParam_${param}")) 
-  data_df <- data %>% filter(id == ID)
+pop_param <- rbind(
+  pop_param %>% 
+    filter(grepl("pop", parameter)) %>% 
+    mutate(parameter = gsub("_pop", "", parameter), tlr7 = 0) %>% 
+    select(parameter, value = estimate, tlr7) ,
   
-  if(param == "NPs") plot_df$color <- plot_df$color*1e5
-  
-  plot <- plot_df %>% 
-    ggplot(aes(time, indivPred_mode, group = interaction(id, run), color = color)) 
-  
-  if(log10_color) plot <- plot + geom_line(alpha = 0.25, aes(color = log10(color)))
-  
-  plot <- plot + 
-    geom_line(data = . %>% filter(bicc == min(bicc)), color = "black", linewidth = 0.5) + 
-    scale_color_viridis_c(direction = -1, option = option) + 
-    geom_point(data = data_df, aes(time, vl), inherit.aes = F) + 
-    labs(x = "Time", y = "Predicted Viral Load", color = ifelse(log10_color, str_interp("log10(${param})") ,param), 
-         title = str_interp("Predictions for animal ${ID}"))
-  
-  boxplot <- plot_df %>% 
-    distinct(id, run, color, bicc) %>% 
-    ggplot(aes("", color)) + 
-    geom_boxplot(outlier.shape = NA) + 
-    ggbeeswarm::geom_beeswarm(aes(color = bicc), alpha = 0.7) + 
-    scale_color_viridis_c(direction = -1) + 
-    theme_minimal() +
-    theme(axis.title.x = element_blank(), 
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          panel.grid = element_blank(),
-          plot.background = element_rect(color = NA),
-          legend.key.size = unit(0.5, "lines"),
-          legend.text = element_text(size = 5),
-          legend.title = element_text(size = 6)) +
-    labs(y = param, color = "BICc")
-  
-  if(log_boxplot){
-    boxplot <- boxplot + scale_y_log10()
-  }
-  
-  
-  if(boxplot_position == "inset"){
-    boxplot <- ggplotGrob(boxplot)
-    
-    xmax <- data_df %>% pull(time) %>% max()
-    xmax <- 0.9*xmax
-    xmin <- ifelse(is.na(boxplot_coord[1]), xmax*0.6, boxplot_coord[1])
-    xmax <- ifelse(is.na(boxplot_coord[2]), xmax, boxplot_coord[2])
-    
-    ymax <- ifelse(max(data_df$vl) < boxplot_coord[4], 0.9*max(data_df$vl), boxplot_coord[4])
-    
-    plot + annotation_custom(boxplot, xmin = xmin, xmax = xmax, 
-                             ymin = boxplot_coord[3], ymax = ymax)
-  }else if(boxplot_position == "right"){
-    plot + boxplot + plot_layout(ncol = 2, widths = c(2,0.5)) 
-  }
-}
+  pop_param %>% 
+    filter(!grepl("omega_", parameter), parameter != "a") %>% 
+    rowwise() %>% 
+    mutate(p = ifelse(grepl("pop", parameter), gsub("_pop", "", parameter),
+                      unlist(str_split(parameter, "_"))[2]), 
+           estimate = ifelse(grepl("pop", parameter), estimate, exp(estimate))) %>% 
+    select(p, parameter, estimate) %>% 
+    group_by(am, p) %>% summarise(value = prod(estimate, na.rm = TRUE)) %>%
+    mutate(value = ifelse(p == "lambda", value*100, value), tlr7 = 1) %>% 
+    rename(parameter = p)
+)
 
-# Save best model results ###
-
-# Using AM1, best results from regime with lower m
-
-best_run <- all_tabestimates %>% filter(am == "am1", !run %in% am1_immune_regime) %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
-
-igs <- all_initialvalues %>% filter(am == "am1", run == best_run) %>% select(-am, -run)
-
-loadProject(here("results_eclipse", "study1", "IGS_model_comparison", "IGS_am1.mlxtran"))
-
-set_base(igs %>% rename(estimate = initialValue), fixed = fixed)
-
-saveProject(here("results_eclipse", "study1", "best_model.mlxtran"))
-
-runScenario()
-
-saveProject(here("results_eclipse", "study1", "best_model.mlxtran"))
+## There is some evidence for a tlr7 effect on m, but is it strong enough to include in the model???
+all_indivParams %>%
+  left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
+  left_join(distinct(data, id, tlr7) %>% mutate(id = as.character(id))) %>% 
+  mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(am != "final_model", regime1) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) %>% 
+  select(-run, -bicc, -regime1) %>% 
+  pivot_longer(!c(id, am, tlr7), names_to = "parameter")  %>% 
+  ggplot(aes(factor(tlr7), value, color = am)) + 
+  geom_violin(scale = "width") + geom_beeswarm(dodge.width = 0.9) + 
+  facet_wrap(~parameter, scales = "free_y") + 
+  scale_y_log10() +
+  geom_point(data = pop_param, shape = 17, size = 4, position = position_dodge(width = 0.9)) 
 
 
-generate_report(here("results_eclipse", "study1", "best_model.mlxtran"))
+# Ridiculously large RSE for m in am3
+all_tabestimates %>% 
+  filter(am != "final_model", paste(am, run, sep = ".") %in% regime1) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) 
+
+# Best BICcs are not noticeably different
+all_tabestimates %>% 
+  filter(am != "final_model", paste(am, run, sep = ".") %in% regime1) %>% 
+  group_by(am) %>% filter(bicc == min(bicc))  %>% distinct(am, bicc)

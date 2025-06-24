@@ -313,6 +313,192 @@ compare_estimates(tabestimates,
 
 
 
+# am6 #####
+alt_mod <- "am6"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+project_name <- str_interp("IGS_${alt_mod}.mlxtran")
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_am6 <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = T, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE,
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_am6)){
+  assign(name, parameter_results_am6[[name]])
+}
+
+save(list = names(parameter_results_am6),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+
+
+
+# am6.1 #####
+alt_mod <- "am6.1"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+project_name <- str_interp("IGS_${alt_mod}.mlxtran")
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_am6.1 <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = T, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE,
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_am6.1)){
+  assign(name, parameter_results_am6.1[[name]])
+}
+
+save(list = names(parameter_results_am6.1),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+
+# am6.3 #####
+alt_mod <- "am6.3"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+project_name <- str_interp("IGS_${alt_mod}.mlxtran")
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_am6.3 <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = T, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE,
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_am6.3)){
+  assign(name, parameter_results_am6.3[[name]])
+}
+
+save(list = names(parameter_results_am6.3),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+
+
+
+
+
+
+
+
 # Compare results ####
 
 ams <- c("final_model","am1", "am3")
@@ -532,83 +718,3 @@ all_indivParams %>%
   scale_x_log10() + scale_y_log10()
 
 
-plot_indiv_traj <- function(indivDF, data, ID, param, option = "A", 
-                            boxplot_coord = c(NA, NA, 0, 3), boxplot_position = "inset",
-                            log_boxplot = F, log10_color = F){
-  plot_df <- indivDF %>% filter(id == ID) %>% 
-    rename(color = str_interp("indivParam_${param}")) 
-  data_df <- data %>% filter(id == ID)
-  
-  if(param == "NPs") plot_df$color <- plot_df$color*1e5
-  
-  plot <- plot_df %>% 
-    ggplot(aes(time, indivPred_mode, group = interaction(id, run), color = color)) 
-  
-  if(log10_color) plot <- plot + geom_line(alpha = 0.25, aes(color = log10(color)))
-  
-  plot <- plot + 
-    geom_line(data = . %>% filter(bicc == min(bicc)), color = "black", linewidth = 0.5) + 
-    scale_color_viridis_c(direction = -1, option = option) + 
-    geom_point(data = data_df, aes(time, vl), inherit.aes = F) + 
-    labs(x = "Time", y = "Predicted Viral Load", color = ifelse(log10_color, str_interp("log10(${param})") ,param), 
-         title = str_interp("Predictions for animal ${ID}"))
-  
-  boxplot <- plot_df %>% 
-    distinct(id, run, color, bicc) %>% 
-    ggplot(aes("", color)) + 
-    geom_boxplot(outlier.shape = NA) + 
-    ggbeeswarm::geom_beeswarm(aes(color = bicc), alpha = 0.7) + 
-    scale_color_viridis_c(direction = -1) + 
-    theme_minimal() +
-    theme(axis.title.x = element_blank(), 
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          panel.grid = element_blank(),
-          plot.background = element_rect(color = NA),
-          legend.key.size = unit(0.5, "lines"),
-          legend.text = element_text(size = 5),
-          legend.title = element_text(size = 6)) +
-    labs(y = param, color = "BICc")
-  
-  if(log_boxplot){
-    boxplot <- boxplot + scale_y_log10()
-  }
-  
-  
-  if(boxplot_position == "inset"){
-    boxplot <- ggplotGrob(boxplot)
-    
-    xmax <- data_df %>% pull(time) %>% max()
-    xmax <- 0.9*xmax
-    xmin <- ifelse(is.na(boxplot_coord[1]), xmax*0.6, boxplot_coord[1])
-    xmax <- ifelse(is.na(boxplot_coord[2]), xmax, boxplot_coord[2])
-    
-    ymax <- ifelse(max(data_df$vl) < boxplot_coord[4], 0.9*max(data_df$vl), boxplot_coord[4])
-    
-    plot + annotation_custom(boxplot, xmin = xmin, xmax = xmax, 
-                             ymin = boxplot_coord[3], ymax = ymax)
-  }else if(boxplot_position == "right"){
-    plot + boxplot + plot_layout(ncol = 2, widths = c(2,0.5)) 
-  }
-}
-
-# Save best model results ###
-
-# Using AM1, best results from regime with lower m
-
-best_run <- all_tabestimates %>% filter(am == "am1", !run %in% am1_immune_regime) %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
-
-igs <- all_initialvalues %>% filter(am == "am1", run == best_run) %>% select(-am, -run)
-
-loadProject(here("results_eclipse", "study1", "IGS_model_comparison", "IGS_am1.mlxtran"))
-
-set_base(igs %>% rename(estimate = initialValue), fixed = fixed)
-
-saveProject(here("results_eclipse", "study1", "best_model.mlxtran"))
-
-runScenario()
-
-saveProject(here("results_eclipse", "study1", "best_model.mlxtran"))
-
-
-generate_report(here("results_eclipse", "study1", "best_model.mlxtran"))
