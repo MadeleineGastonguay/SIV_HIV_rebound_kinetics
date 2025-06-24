@@ -1214,13 +1214,13 @@ estimate_boxplots <- function(tabestimates, remove_bicc_outliers = F, remove_est
   
   df <- tabestimates %>% 
     group_by(parameter) %>% 
-    mutate(estimate = estimate/median(estimate)) 
+    mutate(estimate = abs(estimate/median(estimate)) )
   
   limits <- range(df$estimate) 
   breaks <- c(1,2,5,10)
   bound <- ceiling(max(1/limits[1], limits[2]))
   breaks <- breaks[breaks <= bound]
-  breaks <- sort(round(unique(c(1/breaks, breaks, bound, 1/bound), 2)))
+  breaks <- sort(round(unique(c(1/breaks, breaks, bound, 1/bound)), 2))
   
   parameters <- unique(df$parameter)
   
@@ -1428,22 +1428,23 @@ plot_model_building <- function(mb,  ...){
     geom_rect(data = . %>% filter(best), 
               aes(xmin = BICc, xmax = BICc + 2, ymin = -Inf, ymax = Inf), 
               fill = "grey", alpha = 0.25, color = NA) +
-    geom_rect(data = . %>% filter(best), 
-              aes(xmin = BICc, xmax = BICc + 5, ymin = -Inf, ymax = Inf), 
-              fill = "grey", alpha = 0.15, color = NA) +
+    # geom_rect(data = . %>% filter(best), 
+    #           aes(xmin = BICc, xmax = BICc + 5, ymin = -Inf, ymax = Inf), 
+    #           fill = "grey", alpha = 0.15, color = NA) +
     geom_vline(aes(xintercept = threshold), alpha = 0.5) +
-    geom_point(size = 2,  aes(shape = best), alpha = 0.25) +
-    geom_point(data = . %>% filter(final_mod), size = 2,  aes(shape = best)) +
+    geom_point(size = 2,  aes(shape = interaction(best, final_mod)), 
+               position  = position_jitter(height = 0.2, seed = 100, width = 0)) +
+    # geom_point(data = . %>% filter(final_mod), size = 2,  aes(shape = best)) +
     ggrepel::geom_text_repel(
-      data = . %>% filter(BICc <= threshold), aes(label = param), 
+      data = . %>% group_by(n_covar) %>%  mutate(label = ifelse(BICc <= (min(BICc) + 2), param, "")), aes(label = label), 
       hjust = 0, min.segment.length = 0, direction = "y",
-      show.legend = F
+      show.legend = F, position = position_jitter(height = 0.2, seed = 100, width = 0)
     ) +
     facet_wrap(~n_covar, labeller = "label_both", dir = "v", ...) + 
     ggsci::scale_color_lancet() +
-    guides(color = guide_legend(override.aes = list(alpha = 1)), 
-           shape = guide_legend(override.aes = list(alpha = 1))) + 
-    labs(color = "Parameter", shape = "Best covariate", caption = "Forward selection only") + 
+    scale_shape_manual(values = c(1, 19, 17), labels = c("Not in final model", "Included in final model", "Best covariate at this step")) +
+    # guides(shape = "none") + 
+    labs(color = "Parameter", shape = "Treatment effect category", caption = "Forward selection only\nClosed shapes are effects included in the final model") + 
     theme(panel.border = element_rect(fill = NA)) 
   
   # Add custom breaks while preserving the default range
