@@ -128,11 +128,58 @@ plot_bicc_v_estimate(
   out_folder = out_folder, project_name = project_name
 )
 
-
 correlate_estimates(tabestimates, 
                     out_folder = out_folder, project_name = project_name)
 
+# Still a correlation between beta and ta and ta and m, but there isn't too much variation in the parameters
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+table_predictions <- left_join(table_predictions, distinct(tabestimates, run, bicc))
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
+
+table_predictions %>% 
+  ggplot(aes(time, V_mode,  group = factor(run), color = bicc))  + 
+  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
+
+table_predictions %>% 
+  ggplot(aes(time, P_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
+
+table_predictions %>% 
+  ggplot(aes(time, E_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+table_predictions %>% 
+  ggplot(aes(time, I_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+table_predictions %>% 
+  ggplot(aes(time, T_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+dev.off()
 
 # AM2 #####
 # AM2 from SCM 
@@ -185,11 +232,57 @@ plot_bicc_v_estimate(
   out_folder = out_folder, project_name = project_name
 )
 
-plot_bicc_v_estimate(tabestimates)
-
 correlate_estimates(tabestimates, 
                     out_folder = out_folder, project_name = project_name)
 
+# Still a strong correlation between beta and ta and ta and m
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
+
+table_predictions <- left_join(table_predictions, distinct(tabestimates, run, bicc))
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
+
+table_predictions %>% 
+  ggplot(aes(time, V_mode,  group = factor(run), color = bicc))  + 
+  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
+
+table_predictions %>% 
+  ggplot(aes(time, P_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
+
+table_predictions %>% 
+  ggplot(aes(time, E_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+table_predictions %>% 
+  ggplot(aes(time, I_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+table_predictions %>% 
+  ggplot(aes(time, T_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+dev.off()
 
 
 # BH1.1 #####
@@ -245,14 +338,56 @@ plot_bicc_v_estimate(
 correlate_estimates(tabestimates, 
                     out_folder = out_folder, project_name = project_name)
 
+# still a strong correlation between beta and ta and m and ta
 correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 
 compare_estimates(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
+estimate_boxplots(tabestimates,
+                  out_folder = out_folder, project_name = project_name)
 
 
+table_predictions <- left_join(table_predictions, distinct(tabestimates, run, bicc))
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
 
+table_predictions %>% 
+  ggplot(aes(time, V_mode,  group = factor(run), color = bicc))  + 
+  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
+
+table_predictions %>% 
+  ggplot(aes(time, P_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc()
+
+table_predictions %>% 
+  ggplot(aes(time, E_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+table_predictions %>% 
+  ggplot(aes(time, I_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+table_predictions %>% 
+  ggplot(aes(time, T_mode,  group = factor(run), color = bicc))  + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~id) + 
+  scale_y_log10() + 
+  color_bicc() 
+
+dev.off()
 
 
 
@@ -306,6 +441,7 @@ plot_bicc_v_estimate(
   out_folder = out_folder, project_name = project_name
 )
 
+# Still a correlation between ta an beta and m and ta
 correlate_estimates(tabestimates, 
                     out_folder = out_folder, project_name = project_name)
 
@@ -314,7 +450,7 @@ correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 compare_estimates(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
-
+estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
 
 
 
@@ -328,6 +464,9 @@ all_initialvalues <- NULL
 all_pvals <- NULL
 all_indivParams <- NULL
 all_indivFit <- NULL
+all_condition_numbers <- NULL
+all_table_predictions <- NULL
+all_shrinkage <- NULL
 for(am in ams){
   load(here(out_folder, str_interp("IGS_${am}"), "IGS.RData")) 
   all_tabestimates <- rbind(all_tabestimates, tabestimates %>% mutate(am = am))
@@ -335,6 +474,9 @@ for(am in ams){
   all_pvals <- rbind(all_pvals, pvals %>% mutate(am = am))
   all_indivParams <- rbind(all_indivParams, indivParams %>% mutate(am = am))
   all_indivFit <- rbind(all_indivFit, indivFit %>% mutate(am = am))
+  all_condition_numbers <- rbind(all_condition_numbers, condition_number %>% mutate(am = am))
+  all_table_predictions <- rbind(all_table_predictions, table_predictions %>% mutate(am = am))
+  all_shrinkage <- rbind(all_shrinkage, shrinkage %>% mutate(am = am))
 }
 
 all_tabestimates <- all_tabestimates %>% 
@@ -356,17 +498,18 @@ all_tabestimates %>% select(parameter, am, estimate, best, run)  %>%
 
 # Compare model performances ####
 
-## out of 100 runs, the number of times each model was the best according to BICc
+## out of 50 runs, the number of times each model was the best according to BICc
 all_tabestimates %>% 
   distinct(run, best) %>% 
   count(best)
 
-# best      n
-# am1      75
-# am2      25
+# best            n
+# final_model    15
+# am2            35
 
+# The biological hypotheses are never the best
 
-## out of 100 runs, the number of times each model was less than 2 BICc from the best model
+## out of 50 runs, the number of times each model was less than 2 BICc from the best model
 all_tabestimates %>% distinct(run, bicc, am, best) %>% 
   rename(best_model = best) %>% 
   group_by(run) %>% 
@@ -376,18 +519,12 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
   filter(equal_to_best) %>% 
   count(am, equal_to_best) 
 
-# am    equal_to_best     n
-# am1   TRUE             80
-# am2   TRUE             51
+# am          equal_to_best     n
+# final_model TRUE             40
+# am2         TRUE             49
+# bh1.1       TRUE              1
+# bh3         TRUE              1
 
-## out of 100 runs, AM2 significantly out-performed AM1 20 times
-all_tabestimates %>% distinct(run, bicc, am, best) %>% 
-  pivot_wider(names_from = am, values_from = bicc) %>% 
-  count(am1 > (am2 + 2))
-
-# `am1 > (am2 + 2)`     n
-# FALSE                80
-# TRUE                 20
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
 
@@ -404,116 +541,29 @@ all_tabestimates_bicc %>%
   labs(x = "Model", y = "BICc", color = "") +
   theme(legend.position = "bottom") +
   coord_flip() + 
-  annotate(geom = "text", x = c(1:2), y = 470, label = paste(rev(ncovar$n), "covariates"), hjust = 1)
+  annotate(geom = "text", x = c(1:nrow(ncovar)), y = 770, label = paste((ncovar$n), "covariates"), hjust = 1)
 
 
+# How frequently are the treatment effects significant?
+# tlr7*ab effect is never significant on Np (BH3)
+# ab effect is never significant on ta (BH1.1)
 
-# How many times does AM2 outperform AM1?
-plot_df <- all_tabestimates %>% 
-  distinct(run, best, bicc, am) %>% 
-  pivot_wider(names_from = am, values_from = bicc) %>%
-  mutate(color = case_when(am1 > (am2 + 2) ~ "Alternative model better", am2 > (am1 + 2) ~ "SCM model better", TRUE ~ "Equal performance"))
-
-# There are two clusters where AM2 performs better than AM1:
-AM2_better_c1 <- plot_df %>% filter(am2 < 430 & am1 > 430 & am1 > (am2 + 2) ) %>% pull(run) %>% unique 
-AM2_better_c2 <- plot_df %>% filter(am2 > 430 & am1 > 438 & am1 > (am2 + 2 )) %>% pull(run) %>% unique 
-
-plot_df %>%
-  mutate(shape = ifelse(run %in% AM2_better_c1, "Larger m_pop in AM2", 
-                        ifelse(run %in% AM2_better_c2, "Larger TLR7:lambda in AM2", "AM1 equal or better"))) %>%
-  ggplot(aes(am1, am2)) + 
-  
-  geom_abline(alpha = 0.7) +
-  geom_abline(intercept = -2, lty = "dashed", alpha = 0.7) +
-  geom_abline(intercept = 2, lty = "dashed", alpha = 0.7)  +
-  
-  # Shaded regions using geom_ribbon
-  geom_ribbon(aes(ymin = -Inf, ymax = am1 - 2), fill = "darkred", alpha = 0.1) +  # Below bottom dashed line
-  annotate("text", x = 427, y = 420, label = str_interp("Alternative\nmodel better\n(${count(plot_df, color)$n[1]})"), size = 4, color = "darkred", fontface = "bold") +
-  
-  geom_ribbon(aes(ymin = am1 - 2, ymax = am1 + 2), fill = "darkgreen", alpha = 0.1) +  # Between dashed lines
-  annotate("text", x = 430, y = 430, label = str_interp("Equal\nperformance\n(${count(plot_df, color)$n[2]})"), size = 4, color = "darkgreen", fontface = "bold") +
-  
-  geom_ribbon(aes(ymin = am1 + 2, ymax = Inf), fill = "darkgray", alpha = 0.1) +   # Above top dashed line
-  annotate("text", x = 425, y = 450, label = str_interp("SCM model better\n(${count(plot_df, color)$n[3]})"), size = 4, color = "darkgray", fontface = "bold") +
-  
-  geom_point(data = . %>% filter(color != "Alternative model better"), aes(color = color), alpha = 0.7, size = 2) +
-  geom_point(data = . %>% filter(color == "Alternative model better"), aes(color = color, shape = shape), alpha = 0.7, size = 2) +
-  labs(x = "TLR7 on ta and lambda", y = "TLR7 on ta, lambda, and Np", shape = "") +
-  scale_color_manual(values = c("darkred", "darkgreen", "darkgray")) + 
-  scale_shape_manual(values = c(15, 17)) +
-  guides(color = "none") 
-
-# AM2 outperforms AM1 for two different reasons:
-# If both models assume delayed reactivation is the mecnaism for control in aviremic monkeys,
-# AM2 does better when AM1 estimates a smaller TLR7 effect on lambda (cluster 1)
-# If AM2 assumes immune control is the mechanism for control in aviremic monkeys,
-# it out performs AM1 when AM1 estimates a smaller m_pop (meaning it infers dealyed rebound as the mechanism)
-all_tabestimates %>% 
-  select(run, parameter, estimate,  am) %>% 
-  pivot_wider(names_from = am, values_from = estimate) %>% 
-  mutate(color = ifelse(run %in% AM2_better_c1, "AM2 better because of m_pop", 
-                        ifelse(run %in% AM2_better_c2, "AM2 better because of TLR7:lambda", "AM1 equal or better"))) %>%
-  ggplot(aes(am1, am2, color = color)) + 
-  geom_point() + 
-  geom_abline() +
-  facet_wrap(~parameter, scales = "free")
-
-all_indivFit %>% filter(run %in% AM2_better_c1) %>% 
-  ggplot(aes(time, indivPred_mode, color = am, group = interaction(id, run, am))) + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id)
-
-all_indivFit %>% filter(run %in% AM2_better_c2) %>% 
-  ggplot(aes(time, indivPred_mode, color = am, group = interaction(id, run, am))) + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id)
-
-immune_control_am1 <- all_indivFit %>% 
-  filter(am == "am1", id == 15, time < 75, indivPred_mode > 0.7) %>% 
-  pull(run) %>% unique
-immune_control_am2 <- all_indivFit %>% 
-  filter(am == "am2", id == 15, time < 75, indivPred_mode > 0.7) %>% 
-  pull(run) %>% unique
-
-
-# When both models infer mechanism of control to be delayed reactivation, the model with a TLR7 effect 
-# on Np signicantly outperforms the model without one in only 8% of runs
-plot_df %>% filter((!run %in% immune_control_am1) & (!run %in% immune_control_am2)) %>% 
-  count(color)
-
-# If both models infer the mechanism of control is a delay in rebound, AM2 outperforms AM1 
-# when AM1 estimates a smaller TLR7 effect on lambda
-all_tabestimates %>% 
-  left_join(distinct(plot_df, run, color)) %>% 
-  mutate(both_delayed = (!run %in% immune_control_am1) & (!run %in% immune_control_am2)) %>% 
-  filter(both_delayed) %>% 
-  select(parameter, estimate, run, am, color) %>%
-  pivot_wider(names_from = am, values_from = estimate) %>% 
-  ggplot(aes(am1, am2, color = color)) +
-  geom_abline() +
-  geom_point(alpha = 0.7, size = 2) + 
-  facet_wrap(~parameter, scales = "free") 
-  
-
-# The TLR7 effect on Np is never significant ####
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
-  ggplot(aes(am, log10(padj), color = padj >= 0.05)) + 
+  ggplot(aes(am, log10(padj), color = padj < 0.05)) + 
   ggbeeswarm::geom_beeswarm() + 
   facet_wrap(~parameter, ncol = 3) +
-  geom_hline(yintercept = log10(0.05)) +
-  scale_color_manual(values = c("black", "gray")) + 
+  geom_hline(yintercept = log10(0.05)) + 
+  labs(color = "Low m, low ta regime") +
+  scale_color_manual(values = c("black", "gray")) +
   theme(legend.position = "none")
-
 
 
 # Look at size of random effects for each model ####
 # There's no model with clearly large random effects
 
 all_tabestimates %>% filter(grepl("omega", parameter)) %>% 
-  mutate(am = factor(am, levels = c("am1", "am2"), labels = c("no TLR7 effect on Np", "TLR7 effect on Np")),
-    parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
+  mutate(parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
   ggplot(aes(am, exp(estimate))) + 
   geom_violin() +
   # geom_boxplot(width = 0.1) +
@@ -525,96 +575,85 @@ all_tabestimates %>% filter(grepl("omega", parameter)) %>%
   color_bicc()
 
 
+# Compare condition numbers:
+all_condition_numbers %>%
+  ggplot(aes(am, condition_number)) +
+  geom_violin() + 
+  geom_beeswarm() + 
+  geom_beeswarm(data = . %>% left_join(distinct(all_tabestimates, am, run, bicc)) %>% 
+                  group_by(am) %>% filter(bicc == min(bicc)),
+                shape = 17, size = 4, color = "red") + 
+  scale_y_log10() +
+  geom_hline(yintercept = 100, linetype = "dashed") +
+  coord_flip()
 
-all_indivParams %>% 
-  pivot_longer(!c(id, run, am), names_to = "parameter", values_to = "EBE") %>% 
-  pivot_wider(names_from = am, values_from = EBE) %>% 
-  left_join(distinct(data, id, tlr7, vac) %>% mutate(id = as.character(id))) %>% 
-  ggplot(aes(am1, am3, color = interaction(tlr7,vac), fill = interaction(tlr7,vac))) + 
-  geom_abline() + 
-  geom_point(size = 2, alpha = 0.5) + 
-  geom_point(data = bests, shape = 24, size = 2, color = "black") +
-  facet_wrap(~parameter, scales = "free") + 
-  scale_x_log10() + scale_y_log10()
+
+## look at RSE for best fits of two similar models:
+# The best model BICs are indistinguishible
+all_tabestimates %>% filter(am %in% c("final_model", "am2")) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) %>% 
+  arrange(parameter, am) %>% filter(abs(rses) > 50) %>% view
 
 
-plot_indiv_traj <- function(indivDF, data, ID, param, option = "A", 
-                            boxplot_coord = c(NA, NA, 0, 3), boxplot_position = "inset",
-                            log_boxplot = F, log10_color = F){
-  plot_df <- indivDF %>% filter(id == ID) %>% 
-    rename(color = str_interp("indivParam_${param}")) 
-  data_df <- data %>% filter(id == ID)
+## Compare EBEs for best models:
+
+pop_param <- all_tabestimates %>% 
+  filter(am %in% c("final_model", "am2")) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) 
+
+pop_param <- rbind(
+  pop_param %>% 
+    filter(grepl("pop", parameter)) %>% 
+    mutate(parameter = gsub("_pop", "", parameter), tlr7 = 0, ab = 0) %>% 
+    select(parameter, value = estimate, tlr7, ab) ,
   
-  if(param == "NPs") plot_df$color <- plot_df$color*1e5
+  pop_param %>% 
+    filter(grepl("pop", parameter) | grepl("tlr7_1", parameter)) %>% 
+    rowwise() %>% 
+    mutate(p = ifelse(grepl("pop", parameter), gsub("_pop", "", parameter),
+                      unlist(str_split(parameter, "_"))[2]), 
+           estimate = ifelse(grepl("pop", parameter), estimate, exp(estimate))) %>% 
+    select(p, parameter, estimate) %>% 
+    group_by(am, p) %>% summarise(value = prod(estimate, na.rm = TRUE)) %>%
+    mutate(value = ifelse(p == "lambda", value*100, value), tlr7 = 1, ab = 0) %>% 
+    rename(parameter = p),
   
-  plot <- plot_df %>% 
-    ggplot(aes(time, indivPred_mode, group = interaction(id, run), color = color)) 
+  pop_param %>% 
+    filter(grepl("pop", parameter) | grepl("ab_1", parameter)) %>% 
+    rowwise() %>% 
+    mutate(p = ifelse(grepl("pop", parameter), gsub("_pop", "", parameter),
+                      unlist(str_split(parameter, "_"))[2]), 
+           estimate = ifelse(grepl("pop", parameter), estimate, exp(estimate))) %>% 
+    select(p, parameter, estimate) %>% 
+    group_by(am, p) %>% summarise(value = prod(estimate, na.rm = TRUE)) %>%
+    mutate(value = ifelse(p == "lambda", value*100, value), tlr7 = 0, ab = 1) %>% 
+    rename(parameter = p),
   
-  if(log10_color) plot <- plot + geom_line(alpha = 0.25, aes(color = log10(color)))
-  
-  plot <- plot + 
-    geom_line(data = . %>% filter(bicc == min(bicc)), color = "black", linewidth = 0.5) + 
-    scale_color_viridis_c(direction = -1, option = option) + 
-    geom_point(data = data_df, aes(time, vl), inherit.aes = F) + 
-    labs(x = "Time", y = "Predicted Viral Load", color = ifelse(log10_color, str_interp("log10(${param})") ,param), 
-         title = str_interp("Predictions for animal ${ID}"))
-  
-  boxplot <- plot_df %>% 
-    distinct(id, run, color, bicc) %>% 
-    ggplot(aes("", color)) + 
-    geom_boxplot(outlier.shape = NA) + 
-    ggbeeswarm::geom_beeswarm(aes(color = bicc), alpha = 0.7) + 
-    scale_color_viridis_c(direction = -1) + 
-    theme_minimal() +
-    theme(axis.title.x = element_blank(), 
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          panel.grid = element_blank(),
-          plot.background = element_rect(color = NA),
-          legend.key.size = unit(0.5, "lines"),
-          legend.text = element_text(size = 5),
-          legend.title = element_text(size = 6)) +
-    labs(y = param, color = "BICc")
-  
-  if(log_boxplot){
-    boxplot <- boxplot + scale_y_log10()
-  }
-  
-  
-  if(boxplot_position == "inset"){
-    boxplot <- ggplotGrob(boxplot)
-    
-    xmax <- data_df %>% pull(time) %>% max()
-    xmax <- 0.9*xmax
-    xmin <- ifelse(is.na(boxplot_coord[1]), xmax*0.6, boxplot_coord[1])
-    xmax <- ifelse(is.na(boxplot_coord[2]), xmax, boxplot_coord[2])
-    
-    ymax <- ifelse(max(data_df$vl) < boxplot_coord[4], 0.9*max(data_df$vl), boxplot_coord[4])
-    
-    plot + annotation_custom(boxplot, xmin = xmin, xmax = xmax, 
-                             ymin = boxplot_coord[3], ymax = ymax)
-  }else if(boxplot_position == "right"){
-    plot + boxplot + plot_layout(ncol = 2, widths = c(2,0.5)) 
-  }
-}
+  pop_param %>% 
+    filter(grepl("pop", parameter) | grepl("beta_", parameter)) %>% 
+    rowwise() %>% 
+    mutate(p = ifelse(grepl("pop", parameter), gsub("_pop", "", parameter),
+                      unlist(str_split(parameter, "_"))[2]), 
+           estimate = ifelse(grepl("pop", parameter), estimate, exp(estimate))) %>% 
+    select(p, parameter, estimate) %>% 
+    group_by(am, p) %>% summarise(value = prod(estimate, na.rm = TRUE)) %>%
+    mutate(value = ifelse(p == "lambda", value*100, value), tlr7 = 1, ab = 1) %>% 
+    rename(parameter = p)
+)
 
-# Save best model results ###
-
-# Using AM1, best results from regime with lower m
-
-best_run <- all_tabestimates %>% filter(am == "am1", !run %in% am1_immune_regime) %>% filter(bicc == min(bicc)) %>% pull(run) %>% unique
-
-igs <- all_initialvalues %>% filter(am == "am1", run == best_run) %>% select(-am, -run)
-
-loadProject(here("results_eclipse", "study1", "IGS_model_comparison", "IGS_am1.mlxtran"))
-
-set_base(igs %>% rename(estimate = initialValue), fixed = fixed)
-
-saveProject(here("results_eclipse", "study1", "best_model.mlxtran"))
-
-runScenario()
-
-saveProject(here("results_eclipse", "study1", "best_model.mlxtran"))
+## There is some evidence for a tlr7 effect on m, but is it strong enough to include in the model???
+all_indivParams %>%
+  filter(am %in% c("final_model", "am2")) %>% 
+  left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
+  left_join(distinct(data, id, tlr7, ab) %>% 
+              mutate(id = as.character(id))) %>% 
+  group_by(am) %>% filter(bicc == min(bicc)) %>% 
+  select(-run, -bicc) %>% 
+  pivot_longer(!c(id, am, tlr7, ab), names_to = "parameter")  %>% 
+  ggplot(aes(interaction(tlr7, ab), value, color = am)) + 
+  geom_violin(scale = "width") + geom_beeswarm(dodge.width = 0.9) + 
+  facet_wrap(~parameter, scales = "free_y") + 
+  scale_y_log10() +
+  geom_point(data = pop_param, shape = 17, size = 4, position = position_dodge(width = 0.9))
 
 
-generate_report(here("results_eclipse", "study1", "best_model.mlxtran"))
