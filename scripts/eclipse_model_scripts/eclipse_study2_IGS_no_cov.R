@@ -123,7 +123,7 @@ if(RERUN){
   for(name in names(parameter_results)){
     assign(name, parameter_results[[name]])
   }
-
+  
   # combine elements of parmater_results2 with parameter_results and update the run number in results 2 to add 50 
   tabestimates <- rbind(tabestimates, parameter_results2$tabestimates %>% mutate(run = run + max(parameter_results$tabestimates$run)))
   tabiters <- rbind(tabiters, parameter_results2$tabiters %>% mutate(run = run + max(parameter_results$tabestimates$run)))
@@ -199,7 +199,7 @@ pdf(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "indiv_trajectorie
 for(param in names(indivParams)[2:7]){
   print(
     indivDF %>% 
-    ggplot(aes(time, indivPred_mode, color = (!!as.symbol(param)), group = interaction(id, run))) + 
+      ggplot(aes(time, indivPred_mode, color = (!!as.symbol(param)), group = interaction(id, run))) + 
       geom_point(data = . %>% filter(run == min(run)), alpha = 0.5, inherit.aes = F, aes(time, vl)) +
       geom_line(alpha = 0.5) + 
       geom_line(data = . %>% merge(distinct(tabestimates, run, bicc) %>% filter(bicc == min(bicc))),
@@ -307,6 +307,26 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
              aes(xintercept = initialValue), linetype = "dashed", color = "black")
 
 
+
+igs2 <- data.frame(
+  parameter = c("lambda_pop", "p_pop"),
+  initialValue = c(50, 0.7)
+)
+
+# Minimum BICc for lambda: 42
+# Minimum BICc for p: 0.6
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(parameter %in% c("lambda_pop", "p_pop"), bicc < 590) %>% #filter(bicc == min(bicc))
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point() + 
+  scale_x_log10() +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") +
+  geom_vline(data = igs2 %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black") 
+
+
 # Run profile likelihood for lambda, p, and m ####
 if(RERUN){
   lambda_profile <- profile_likelihood("lambda_pop", c(20,1000), igs, nits = 99, record_predictions = T)
@@ -320,12 +340,15 @@ if(RERUN){
   m_profile <- profile_likelihood("m_pop", c(10, 1000), igs, nits = 100, record_predictions = T)
   write_csv(m_profile$tabestimates, here(out_folder, "m_profile_likelihood.csv"))
   write_csv(m_profile$predictions, here(out_folder, "m_profile_likelihood_table.csv"))
-
+  
 }else{
   lambda_profile <- read_csv( here(out_folder, "lambda_profile_likelihood.csv"))
   p_profile <- read_csv( here(out_folder, "p_profile_likelihood.csv"))
   m_profile <- read_csv( here(out_folder, "m_profile_likelihood.csv"))
 }
+
+lambda_profile %>% filter(bicc == min(bicc))
+p_profile %>% filter(bicc == min(bicc))
 
 # Visualize Profile Likelihood results ####
 ## Lambda

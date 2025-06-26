@@ -152,6 +152,8 @@ if(RERUN){
   load(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
 }
 
+
+
 # Visualize results from wide IGS ####
 
 ## Color by "best" runs according to BICc
@@ -319,6 +321,26 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   filter(grepl("pop", parameter), bicc == min(bicc))
 
 
+igs2 <- data.frame(
+  parameter = c("lambda_pop", "p_pop"),
+  initialValue = c(100, 0.9)
+)
+
+# Minimum BICc for lambda: 75
+# Minimum BICc for p: 0.85
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(parameter %in% c("lambda_pop", "p_pop"), bicc < 980) %>% #filter(bicc == min(bicc))
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point() + 
+  scale_x_log10() +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") +
+  geom_vline(data = igs2 %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black") 
+
+
+
 # Run profile likelihood for lambda, p, and m ####
 if(RERUN){
   lambda_profile <- profile_likelihood("lambda_pop", c(20,1000), igs, nits = 99, record_predictions = T)
@@ -338,6 +360,9 @@ if(RERUN){
   p_profile <- read_csv( here(out_folder, "p_profile_likelihood.csv"))
   m_profile <- read_csv( here(out_folder, "m_profile_likelihood.csv"))
 }
+
+lambda_profile %>% filter(bicc == min(bicc))
+p_profile %>% filter(bicc == min(bicc))
 
 # Visualize Profile Likelihood results ####
 ## Lambda

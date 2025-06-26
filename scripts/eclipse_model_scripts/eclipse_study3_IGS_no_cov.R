@@ -320,6 +320,26 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   geom_vline(data = igs %>% filter(grepl("pop", parameter)),
              aes(xintercept = initialValue), linetype = "dashed", color = "black") 
 
+igs2 <- data.frame(
+  parameter = c("lambda_pop", "p_pop"),
+  initialValue = c(500, 1)
+)
+
+# Minimum BICc for lambda: 3129
+# Minimum BICc for lambda from narrow: 440
+# Minimum BICc for p: 1.023
+rbind(log10_tabestimates %>% mutate(a = "log10"),
+      tabestimates %>% mutate(a = "narrow")) %>% 
+  filter(parameter %in% c("lambda_pop", "p_pop"), bicc < 820) %>% #filter(bicc == min(bicc))
+  ggplot(aes(estimate, bicc, color = a )) + 
+  geom_point() + 
+  scale_x_log10() +
+  geom_smooth(color = "black")  + 
+  facet_wrap(~parameter, scales = "free_x") +
+  geom_vline(data = igs2 %>% filter(grepl("pop", parameter)),
+             aes(xintercept = initialValue), linetype = "dashed", color = "black") 
+
+
 
 
 # Run profile likelihood for lambda, p, and m ####
@@ -340,6 +360,9 @@ if(RERUN){
   p_profile <- read_csv( here(out_folder, "p_profile_likelihood.csv"))
   m_profile <- read_csv( here(out_folder, "m_profile_likelihood.csv"))
 }
+
+lambda_profile %>% filter(bicc == min(bicc))
+p_profile %>% filter(bicc == min(bicc))
 
 # Visualize Profile Likelihood results ####
 ## Lambda
