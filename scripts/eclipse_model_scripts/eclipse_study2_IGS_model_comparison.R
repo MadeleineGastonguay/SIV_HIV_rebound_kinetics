@@ -130,6 +130,11 @@ plot_bicc_v_estimate(
 correlate_estimates(tabestimates, 
                     out_folder = out_folder, project_name = project_name)
 
+compare_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
 
 
 # AM3 #####
@@ -186,7 +191,11 @@ plot_bicc_v_estimate(tabestimates)
 correlate_estimates(tabestimates, 
                     out_folder = out_folder, project_name = project_name)
 
+compare_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
 
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
 
 # AM4 #####
 alt_mod <- "am4"
@@ -245,7 +254,8 @@ correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 compare_estimates(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
-
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
 
 
 
@@ -308,8 +318,8 @@ correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 compare_estimates(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
-
-
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
 
 
 
@@ -370,7 +380,8 @@ correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 compare_estimates(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
-
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
 
 
 
@@ -490,32 +501,35 @@ correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
 compare_estimates(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
-
-
-
-
-
-
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
 
 
 
 # Compare results ####
 
-ams <- c("final_model","am1", "am3")
+ams <- c("am1", "am3", "am4", "am5", "am6", "am6.1", "am6.3")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL
 all_pvals <- NULL
 all_indivParams <- NULL
 all_indivFit <- NULL
+all_condition_numbers <- NULL
+all_table_predictions <- NULL
+all_shrinkage <- NULL
 for(am in ams){
-  load(here(out_folder, str_interp("IGS_${am}"), "IGS.RData")) 
+    load(here(out_folder, str_interp("IGS_${am}"), "IGS.RData")) 
   all_tabestimates <- rbind(all_tabestimates, tabestimates %>% mutate(am = am))
   all_initialvalues <- rbind(all_initialvalues, initialvalues %>% mutate(am = am))
   all_pvals <- rbind(all_pvals, pvals %>% mutate(am = am))
   all_indivParams <- rbind(all_indivParams, indivParams %>% mutate(am = am))
   all_indivFit <- rbind(all_indivFit, indivFit %>% mutate(am = am))
+  all_condition_numbers <- rbind(all_condition_numbers, condition_number %>% mutate(am = am))
+  all_table_predictions <- rbind(all_table_predictions, table_predictions %>% mutate(am = am))
+  all_shrinkage <- rbind(all_shrinkage, shrinkage %>% mutate(am = am))
 }
+
 
 all_tabestimates <- all_tabestimates %>% 
   mutate(am = factor(am, levels = ams)) %>% 
@@ -542,8 +556,8 @@ all_tabestimates %>%
   count(best)
 
 # best      n
-# am1      75
-# am2      25
+# am3      40
+# am6.3    60
 
 
 ## out of 100 runs, the number of times each model was less than 2 BICc from the best model
@@ -557,17 +571,21 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
   count(am, equal_to_best) 
 
 # am    equal_to_best     n
-# am1   TRUE             80
-# am2   TRUE             51
+# <fct> <lgl>         <int>
+#   1 am3   TRUE             78
+# 2 am4   TRUE              1
+# 3 am6   TRUE              1
+# 4 am6.3 TRUE             92
 
-## out of 100 runs, AM2 significantly out-performed AM1 20 times
+## out of 100 runs, AM3 significantly out-performed only AM6.3 8 times
 all_tabestimates %>% distinct(run, bicc, am, best) %>% 
   pivot_wider(names_from = am, values_from = bicc) %>% 
-  count(am1 > (am2 + 2))
+  count(am6.3 > (am3 + 2))
 
-# `am1 > (am2 + 2)`     n
-# FALSE                80
-# TRUE                 20
+# `am6.3 > (am3 + 2)`     n
+# <lgl>               <int>
+#   1 FALSE                  92
+# 2 TRUE                    8
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
 
@@ -583,100 +601,13 @@ all_tabestimates_bicc %>%
   scale_color_manual(values = c("blue", "darkorchid", "darkgray")) +
   labs(x = "Model", y = "BICc", color = "") +
   theme(legend.position = "bottom") +
-  coord_flip() + 
-  annotate(geom = "text", x = c(1:2), y = 470, label = paste(rev(ncovar$n), "covariates"), hjust = 1)
+  coord_flip() 
+  # annotate(geom = "text", x = c(1:nrow(ncovar)), y = 470, label = paste((ncovar$n), "covariates"), hjust = 1)
 
+# Look at significance of treatment effects ####
 
-
-# How many times does AM2 outperform AM1?
-plot_df <- all_tabestimates %>% 
-  distinct(run, best, bicc, am) %>% 
-  pivot_wider(names_from = am, values_from = bicc) %>%
-  mutate(color = case_when(am1 > (am2 + 2) ~ "Alternative model better", am2 > (am1 + 2) ~ "SCM model better", TRUE ~ "Equal performance"))
-
-# There are two clusters where AM2 performs better than AM1:
-AM2_better_c1 <- plot_df %>% filter(am2 < 430 & am1 > 430 & am1 > (am2 + 2) ) %>% pull(run) %>% unique 
-AM2_better_c2 <- plot_df %>% filter(am2 > 430 & am1 > 438 & am1 > (am2 + 2 )) %>% pull(run) %>% unique 
-
-plot_df %>%
-  mutate(shape = ifelse(run %in% AM2_better_c1, "Larger m_pop in AM2", 
-                        ifelse(run %in% AM2_better_c2, "Larger TLR7:lambda in AM2", "AM1 equal or better"))) %>%
-  ggplot(aes(am1, am2)) + 
-  
-  geom_abline(alpha = 0.7) +
-  geom_abline(intercept = -2, lty = "dashed", alpha = 0.7) +
-  geom_abline(intercept = 2, lty = "dashed", alpha = 0.7)  +
-  
-  # Shaded regions using geom_ribbon
-  geom_ribbon(aes(ymin = -Inf, ymax = am1 - 2), fill = "darkred", alpha = 0.1) +  # Below bottom dashed line
-  annotate("text", x = 427, y = 420, label = str_interp("Alternative\nmodel better\n(${count(plot_df, color)$n[1]})"), size = 4, color = "darkred", fontface = "bold") +
-  
-  geom_ribbon(aes(ymin = am1 - 2, ymax = am1 + 2), fill = "darkgreen", alpha = 0.1) +  # Between dashed lines
-  annotate("text", x = 430, y = 430, label = str_interp("Equal\nperformance\n(${count(plot_df, color)$n[2]})"), size = 4, color = "darkgreen", fontface = "bold") +
-  
-  geom_ribbon(aes(ymin = am1 + 2, ymax = Inf), fill = "darkgray", alpha = 0.1) +   # Above top dashed line
-  annotate("text", x = 425, y = 450, label = str_interp("SCM model better\n(${count(plot_df, color)$n[3]})"), size = 4, color = "darkgray", fontface = "bold") +
-  
-  geom_point(data = . %>% filter(color != "Alternative model better"), aes(color = color), alpha = 0.7, size = 2) +
-  geom_point(data = . %>% filter(color == "Alternative model better"), aes(color = color, shape = shape), alpha = 0.7, size = 2) +
-  labs(x = "TLR7 on ta and lambda", y = "TLR7 on ta, lambda, and Np", shape = "") +
-  scale_color_manual(values = c("darkred", "darkgreen", "darkgray")) + 
-  scale_shape_manual(values = c(15, 17)) +
-  guides(color = "none") 
-
-# AM2 outperforms AM1 for two different reasons:
-# If both models assume delayed reactivation is the mecnaism for control in aviremic monkeys,
-# AM2 does better when AM1 estimates a smaller TLR7 effect on lambda (cluster 1)
-# If AM2 assumes immune control is the mechanism for control in aviremic monkeys,
-# it out performs AM1 when AM1 estimates a smaller m_pop (meaning it infers dealyed rebound as the mechanism)
-all_tabestimates %>% 
-  select(run, parameter, estimate,  am) %>% 
-  pivot_wider(names_from = am, values_from = estimate) %>% 
-  mutate(color = ifelse(run %in% AM2_better_c1, "AM2 better because of m_pop", 
-                        ifelse(run %in% AM2_better_c2, "AM2 better because of TLR7:lambda", "AM1 equal or better"))) %>%
-  ggplot(aes(am1, am2, color = color)) + 
-  geom_point() + 
-  geom_abline() +
-  facet_wrap(~parameter, scales = "free")
-
-all_indivFit %>% filter(run %in% AM2_better_c1) %>% 
-  ggplot(aes(time, indivPred_mode, color = am, group = interaction(id, run, am))) + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id)
-
-all_indivFit %>% filter(run %in% AM2_better_c2) %>% 
-  ggplot(aes(time, indivPred_mode, color = am, group = interaction(id, run, am))) + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id)
-
-immune_control_am1 <- all_indivFit %>% 
-  filter(am == "am1", id == 15, time < 75, indivPred_mode > 0.7) %>% 
-  pull(run) %>% unique
-immune_control_am2 <- all_indivFit %>% 
-  filter(am == "am2", id == 15, time < 75, indivPred_mode > 0.7) %>% 
-  pull(run) %>% unique
-
-
-# When both models infer mechanism of control to be delayed reactivation, the model with a TLR7 effect 
-# on Np signicantly outperforms the model without one in only 8% of runs
-plot_df %>% filter((!run %in% immune_control_am1) & (!run %in% immune_control_am2)) %>% 
-  count(color)
-
-# If both models infer the mechanism of control is a delay in rebound, AM2 outperforms AM1 
-# when AM1 estimates a smaller TLR7 effect on lambda
-all_tabestimates %>% 
-  left_join(distinct(plot_df, run, color)) %>% 
-  mutate(both_delayed = (!run %in% immune_control_am1) & (!run %in% immune_control_am2)) %>% 
-  filter(both_delayed) %>% 
-  select(parameter, estimate, run, am, color) %>%
-  pivot_wider(names_from = am, values_from = estimate) %>% 
-  ggplot(aes(am1, am2, color = color)) +
-  geom_abline() +
-  geom_point(alpha = 0.7, size = 2) + 
-  facet_wrap(~parameter, scales = "free") 
-  
-
-# The TLR7 effect on Np is never significant ####
+# tlr7*vac on ta is significant half the time
+# 
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
   ggplot(aes(am, log10(padj), color = padj >= 0.05)) + 
@@ -686,14 +617,23 @@ all_pvals %>%
   scale_color_manual(values = c("black", "gray")) + 
   theme(legend.position = "none")
 
+# Vaccine on lambda is signficant about 80% of cases
+# vaccine effect on m is signficant in ~50% of cases
+# vaccine effect on p is significant less than 50% of cases
+# tlr7*vac on ta is signifcant ~50% of cases
+all_pvals %>% 
+  mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
+  filter(!parameter %in% c("beta_NPs_vac_1", "beta_NPs_intTLR7VAC_1", "beta_ta_vac_1")) %>% 
+  group_by(parameter, am) %>% 
+  count(significant = padj < 0.05) %>% 
+  filter(significant) %>% view
 
 
 # Look at size of random effects for each model ####
-# There's no model with clearly large random effects
+# 6.1 and 5 have bigger RE on m (they dont have an m or lambda or p effet)
 
 all_tabestimates %>% filter(grepl("omega", parameter)) %>% 
-  mutate(am = factor(am, levels = c("am1", "am2"), labels = c("no TLR7 effect on Np", "TLR7 effect on Np")),
-    parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
+  mutate(parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
   ggplot(aes(am, exp(estimate))) + 
   geom_violin() +
   # geom_boxplot(width = 0.1) +
@@ -705,16 +645,26 @@ all_tabestimates %>% filter(grepl("omega", parameter)) %>%
   color_bicc()
 
 
+all_condition_numbers %>%
+  ggplot(aes(am, condition_number)) +
+  geom_violin() + 
+  geom_beeswarm(dodge.width = 0.9) + 
+  geom_beeswarm(data =. %>% left_join(distinct(all_tabestimates, am, run, bicc)) %>% 
+                  group_by(am) %>% filter(bicc == min(bicc)),
+                dodge.width = 0.9, shape = 17, size = 4, color = "red") + 
+  scale_y_log10() +
+  geom_hline(yintercept = 100, linetype = "dashed") +
+  coord_flip()
 
-all_indivParams %>% 
-  pivot_longer(!c(id, run, am), names_to = "parameter", values_to = "EBE") %>% 
-  pivot_wider(names_from = am, values_from = EBE) %>% 
-  left_join(distinct(data, id, tlr7, vac) %>% mutate(id = as.character(id))) %>% 
-  ggplot(aes(am1, am3, color = interaction(tlr7,vac), fill = interaction(tlr7,vac))) + 
-  geom_abline() + 
-  geom_point(size = 2, alpha = 0.5) + 
-  geom_point(data = bests, shape = 24, size = 2, color = "black") +
-  facet_wrap(~parameter, scales = "free") + 
-  scale_x_log10() + scale_y_log10()
-
-
+all_tabestimates %>% 
+  left_join(all_condition_numbers) %>% 
+  group_by(am, run) %>% 
+  # Remove am1 becuase it is overfit and am6+ since they have tlr7*vac on ta
+  filter(!am %in% c("am1", "am6", "am6.3", "am6.1")) %>% 
+  mutate(n_covar = sum(grepl("beta_", parameter)), 
+                               lambda_effect = any(grepl("beta_lambda", parameter))) %>% 
+  ggplot(aes(condition_number, bicc, color = am, shape = factor(n_covar))) + 
+  geom_point() + 
+  geom_vline(xintercept = 100, lty = "dashed") + 
+  scale_x_log10() + 
+  facet_wrap(~lambda_effect)

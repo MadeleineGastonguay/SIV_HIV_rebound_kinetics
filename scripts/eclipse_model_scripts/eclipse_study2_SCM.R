@@ -205,6 +205,23 @@ alt_mod(
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
 # 450.2078235   482.2078235   506.6295919   519.4543387     5.0000000     0.2654896
 
+## AM6.3: test for tlr7*vac on ta 
+am6.3 <- list("ta" = c("vac", "intTLR7VAC"),
+              "NPs" = c("vac", "intTLR7VAC"),
+              "lambda" = "vac",
+              "p" = "vac")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6.3",
+  model_file, data_file,
+  igs, am6.3,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 440.3472      474.3472      500.2953      513.1201        5.0000        0.1715 
+
 ## AM7: test for tlr7*vac on ta 
 am7 <- list("ta" = c("intTLR7VAC"),
               "NPs" = c("vac", "intTLR7VAC"))

@@ -177,3 +177,18 @@ alt_mod(
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
 # 457.1537044   485.1537044   506.5227518   519.3474986     5.0000000     0.2395731 
+
+SCM_lowerp_lowerl2 <- list( "ta" = c("vac"),
+                           "NPs" = c("vac", "intTLR7VAC"),
+                           "lambda" = "vac")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "SCM_lower_lowerl2",
+  model_file, data_file,
+  igs, SCM_lowerp_lowerl2,
+  headerTypes, error_model,
+  fixed = c("lambda_pop" = 70, "p_pop" = 0.7)
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 448.4302230   478.4302230   501.3256309   514.1503777     5.0000000     0.2041456
