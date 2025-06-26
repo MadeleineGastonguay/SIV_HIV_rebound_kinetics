@@ -1,0 +1,136 @@
+********************************************************************************
+*                          am1.mlxtran                                         *
+*                          June 26, 2025 at 09:38:18                           *
+*                          Monolix version : 2024R1                            *
+********************************************************************************
+
+
+ESTIMATION OF THE POPULATION PARAMETERS ________________________________________
+
+Fixed Effects ----------------------------     se_sa    rse(%)   P2.5_sa  P97.5_sa
+lambda_pop              :              100
+beta_lambda_intTLR7AB_1 :            -2.03     0.749        37     -3.49    -0.559
+betas_pop               :              164        58      35.3      86.5       311
+ta_pop                  :             7.12     0.719      10.1      5.85      8.67
+beta_ta_intTLR7VAC_1    :            0.161    0.0771      47.8    0.0103     0.312
+NPs_pop                 :            0.128     0.125      97.7    0.0335     0.491
+beta_NPs_intTLR7AB_1    :            -3.22      1.01      31.4      -5.2     -1.24
+beta_NPs_intTLR7VAC_1   :            -2.95     0.899      30.5     -4.71     -1.18
+p_pop                   :              0.9
+m_pop                   :              313       248      79.2        96  1.02e+03
+
+Standard Deviation of the Random Effects -
+omega_lambda            :            0.945     0.223      23.6     0.605      1.48
+omega_betas             :             1.47     0.267      18.2      1.04      2.08
+omega_ta                :            0.094    0.0679      72.2     0.031     0.285
+omega_NPs               :             2.43     0.392      16.1      1.78      3.31
+omega_p                 :            0.845     0.203        24     0.537      1.33
+omega_m                 :                1     0.271        27     0.605      1.66
+
+Error Model Parameters -------------------
+a                       :            0.423    0.0222      5.26     0.381     0.468
+
+Elapsed time (seconds):       66
+CPU time     (seconds):  3.8e+02
+Exploratory phase iterations:      236 (Autostop)
+Smoothing phase iterations:        129 (Autostop)
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE INDIVIDUAL PARAMETERS ________________________________________
+
+
+Estimation of the individual parameters by Conditional Distribution ------------
+                   min            Q1        median            Q3           max  shrinkage(%)
+lambda :          8.84          17.1            75           149           474            39
+betas  :          30.1           129           219           438      5.39e+03          22.7
+ta     :          6.41          7.17          7.51          8.37          8.74          63.4
+NPs    :      0.000112       0.00226         0.034        0.0874          18.2          15.2
+p      :         0.256         0.658          1.09           1.6          7.52          30.1
+m      :           123           272           463           658       1.9e+03          38.6
+
+Elapsed time (seconds):       45
+CPU time     (seconds):  2.6e+02
+Iterations:      249 (Autostop)
+
+ -------------------------------------------------------------------------------
+
+
+Estimation of the individual parameters by Conditional Mode --------------------
+                   min            Q1        median            Q3           max  shrinkage(%)
+lambda :          8.42          11.9          53.6           117           286          50.8
+betas  :          19.5          84.8           121           341      4.09e+03          21.6
+ta     :          6.39          7.12          7.38          8.36          8.62          68.2
+NPs    :      2.33e-05      0.000368        0.0155        0.0455          7.72          14.9
+p      :         0.266          0.54         0.845          1.16          6.11          29.4
+m      :          58.3           186           300           375      1.26e+03          38.6
+
+Elapsed time (seconds):      2.8
+CPU time     (seconds):       19
+
+ -------------------------------------------------------------------------------
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE FISHER INFORMATION MATRIX ____________________________________
+
+
+Estimation of the Fisher information matrix by Stochastic Approximation --------
+
+Correlation Matrix :
+beta_lambda_intTLR7AB_1         1
+              betas_pop   0.33579         1
+                 ta_pop   0.79321   0.45156         1
+   beta_ta_intTLR7VAC_1   0.24188     0.234 0.0029348         1
+                NPs_pop  -0.25967   -0.1597  -0.26117 -0.055703         1
+   beta_NPs_intTLR7AB_1  -0.33395  -0.31098  -0.24443  -0.13879  -0.24288         1
+  beta_NPs_intTLR7VAC_1   0.27161   0.16471   0.25228  0.062934  -0.64549  -0.19104         1
+                  m_pop   0.84744   0.42598   0.86188   0.26714  -0.26795  -0.26754    0.2557         1
+           omega_lambda   0.56602   0.28899   0.59599   0.20442  -0.17595   -0.1494   0.18507   0.60366         1
+            omega_betas    0.2756   0.11241   0.34094   0.33587 -0.056669  0.056568-0.0036721   0.34684    0.2532         1
+               omega_ta   0.74513   0.41442   0.82884   0.26015  -0.24551  -0.20561   0.24449   0.80492   0.61535    0.3955         1
+              omega_NPs 0.0073118   0.10145  -0.10588  -0.05405 0.0090751  -0.25516  0.049397 -0.085671  -0.09677  -0.19769    -0.149         1
+                omega_p   0.50332   0.27555   0.51701    0.2919   -0.2671  -0.20791   0.31155    0.5531   0.45579     0.226   0.56184  -0.15928         1
+                omega_m  -0.22051  -0.10265 -0.056064  -0.20725  0.095359   0.19698 -0.093471  -0.18478  -0.14504 -0.017649-0.0073034  -0.12017  -0.13163         1
+                      a   -0.2805  -0.14598  -0.31369  -0.11817   0.10395  0.071798  -0.11647  -0.28638  -0.28399  -0.20105  -0.36712  0.065148  -0.24171  -0.10175         1
+
+                               min       max   max/min
+Eigen values           :     0.076       5.3        70
+
+Elapsed time (seconds):       11
+CPU time     (seconds):       61
+Iterations:       50 (Autostop)
+
+ -------------------------------------------------------------------------------
+
+ _______________________________________________________________________________
+
+
+
+ESTIMATION OF THE LOG-LIKELIHOOD _______________________________________________
+
+                                                            (is)
+-2 x log-likelihood                       (OFV) :         842.93
+Akaike Information Criteria               (AIC) :         872.93
+Corrected Bayesian Information Criteria  (BICc) :         914.13
+Bayesian Information Criteria             (BIC) :         901.31
+
+Elapsed time                          (seconds) :          52.09
+CPU time                              (seconds) :         239.00
+MonteCarlo size (is):    10000 (Fixed number of iterations)
+
+
+[Importance Sampling] Standard error        : 0.548
+                      Sampling distribution : T-distribution with 5 degrees of freedom
+
+ _______________________________________________________________________________
+
+DATASET INFORMATION
+Number of individuals: 49
+Number of observations (vl): 637
+Number of doses: 0
+

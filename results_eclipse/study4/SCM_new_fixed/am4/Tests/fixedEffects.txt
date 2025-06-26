@@ -1,0 +1,8 @@
+parameter,statistics(sa),p-value(sa)
+beta_lambda_intTLR7VAC_1,0.607894,0.543
+beta_betas_intTLR7AB_1,1.37019,0.171
+beta_ta_intTLR7VAC_1,2.644,0.00819
+beta_NPs_intTLR7AB_1,3.4357,0.000591
+beta_NPs_intTLR7VAC_1,1.55581,0.12
+beta_p_intTLR7AB_1,1.7214,0.0852
+beta_p_intTLR7VAC_1,2.30909,0.0209
