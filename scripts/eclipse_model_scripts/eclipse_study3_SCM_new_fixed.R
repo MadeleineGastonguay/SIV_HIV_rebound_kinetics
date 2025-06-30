@@ -118,6 +118,26 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 693.0077239   721.0077239   745.9863788   759.1816655     5.0000000     0.2912992 
+
+# AM3: tlr7 on lambda since we inferred that in study 1
+
+am3.1 <- list("betas" = "ab",
+            "NPs" = "ab",
+            "lambda" = "tlr7",
+            "m" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3.1",
+  model_file, data_file,
+  igs, am3.1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 691.754006    721.754006    748.516851    761.712137      5.000000      0.281861 
 
 # BH1: ab reduces size of latent reservoir
 bh1 <- list("ta" = "ab",
@@ -133,6 +153,8 @@ alt_mod(
 )
 
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 695.0289143   723.0289143   748.0075692   761.2028558     5.0000000     0.2747726 
 
 # BH1.1: ab reduces size of latent reservoir
 bh1.1 <- list("ta" = "ab",
@@ -147,6 +169,9 @@ alt_mod(
   headerTypes, error_model,
   fixed = fixed
 )
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 688.7128736   718.7128736   745.4757182   758.6710048     5.0000000     0.3149708 
 
 
 
@@ -163,6 +188,9 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 696.326367    724.326367    749.305022    762.500308      5.000000      0.315193 
+
 
 # BH2: TLR7 reduces size of latent reservoir (shown in study 1)
 bh2.1 <- list("betas" = "ab",
@@ -178,6 +206,9 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 692.8304986   722.8304986   749.5933431   762.7886297     5.0000000     0.2710956 
+
 
 # BH3: TLR7 might interact with Ab to boost immune system, which we see in study 2
 bh3 <- list("betas" = "ab",
@@ -192,6 +223,10 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 689.90382     719.90382     746.66666     759.86195       5.00000       0.29476 
+
+
 # BH3.1: TLR7 might interact with Ab to boost immune system, which we see in study 2
 bh3.1 <- list("betas" = "ab",
             "NPs" = c("inttlr7ab"),
@@ -204,3 +239,7 @@ alt_mod(
   headerTypes, error_model,
   fixed = fixed
 )
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 699.0423987   727.0423987   752.0210536   765.2163402     5.0000000     0.2390052 
+
