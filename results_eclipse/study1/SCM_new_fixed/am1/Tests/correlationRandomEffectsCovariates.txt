@@ -1,0 +1,7 @@
+eta,covariate,statistics,p-value,test
+eta_lambda,tlr7,0.924395,0.348401,Anova
+eta_betas,tlr7,0.178921,0.677051,Anova
+eta_ta,tlr7,0.0389061,0.84573,Anova
+eta_NPs,tlr7,1.46122,0.241565,Anova
+eta_p,tlr7,0.0157294,0.901511,Anova
+eta_m,tlr7,0.565338,0.461331,Anova
