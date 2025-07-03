@@ -7,6 +7,9 @@ theme_set(theme_bw() +
             theme(strip.background = element_blank(), plot.title = element_text(hjust = 0.5),
                   panel.border = element_rect(colour = "black"), aspect.ratio=1) )
 
+# Define colors for plotting
+colors <- c("0.0" = "black", "1.0" = "#00A3D3", "0.1" = "#FFD871", "1.1" ="#46C029")
+
 source(here("scripts", "forward_simulation_functions.R"))
 
 out_folder <- here("results", "summary_single_fit")

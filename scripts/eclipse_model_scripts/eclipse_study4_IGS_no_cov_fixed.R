@@ -13,12 +13,12 @@ RERUN <- TRUE
 # Project setup ####
 ## Results folder
 study <- "study4"
-project_name <- "IGS_no_cov_fixed_param.mlxtran"
+project_name <- "IGS_no_cov_fixed_param_new.mlxtran"
 out_folder <- here("results_eclipse", study)
 if(!dir.exists(out_folder)) dir.create(out_folder)
 
 ## Parameters to fix:
-fixed <- c("lambda_pop" = 100, "p_pop" = 1)
+fixed <- c("lambda_pop" = 100, "p_pop" = 0.9)
 
 ## Model file
 model_file <- here("model", "2regime_model_delay.txt")
@@ -62,7 +62,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 100,
+    nits = 50,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1,

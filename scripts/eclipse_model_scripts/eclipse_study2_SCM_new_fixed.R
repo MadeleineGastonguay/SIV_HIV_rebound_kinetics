@@ -67,13 +67,10 @@ ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building
        out$plot, width = 10, height = 7)
 
 
-
-## AM1: SCM up to step 5 (no vaccine on beta)
+## AM1: Final model without marginally significant effects
 
 am1 <- list("ta" = "vac",
-            "NPs" = c("vac", "intTLR7VAC"),
-            "m" = "vac",
-            "p" = "vac")
+            "NPs" = c("vac", "intTLR7VAC"))
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am1",
@@ -83,16 +80,14 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree 
+# 458.030789    486.030789    507.399836    520.224583      5.000000 
 
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 449.6656374   481.6656374   506.0874058   518.9121526     5.0000000     0.2667942 
 
+## AM2: tlr7*vac on ta only
 
-## AM2: SCM without insignificant effects
-
-am2 <- list("ta" = "vac",
-            "NPs" = c("vac", "intTLR7VAC"),
-            "p" = "vac")
+am2 <- list("NPs" = "vac",
+            "ta" = c("vac", "intTLR7VAC"))
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2",
@@ -103,14 +98,30 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 458.054850    488.054850    510.950258    523.775005      5.000000      0.270129 
+# 459.8923310   487.8923310   509.2613784   522.0861252     5.0000000     0.2412635 
 
-## AM3: vaccine effect on lambda instead of beta or m
 
+## AM2: tlr7*vac on ta only, keep vaccine effect on lamdba
+am2.1 <- am2
+am2.1$lambda <- "vac"
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2.1",
+  model_file, data_file,
+  igs, am2.1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+# 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 454.3850019   484.3850019   507.2804098   520.1051566     5.0000000     0.2352656 
+
+
+## AM3: tlr7*vac on Np only
 am3 <- list("ta" = "vac",
             "NPs" = c("vac", "intTLR7VAC"),
-            "lambda" = "vac",
-            "p" = "vac")
+            "lambda" = "vac")
+
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3",
@@ -121,14 +132,11 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 446.8947601   478.8947601   503.3165285   516.1412753     5.0000000     0.2832113
+# 450.5111415   480.5111415   503.4065493   516.2312961     5.0000000     0.2451323 
 
-
-## AM4: AM3 without vaccine effect on p
-
+## AM4: tlr7 instead ot tlr7*vac on Np:
 am4 <- list("ta" = "vac",
-            "NPs" = c("vac", "intTLR7VAC"),
-            "lambda" = "vac")
+            "NPs" = c("tlr7", "vac"))
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am4",
@@ -139,167 +147,22 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 452.9871328   482.9871328   505.8825406   518.7072874     5.0000000     0.2281881 
+# 458.9896446   486.9896446   508.3586920   521.1834387     5.0000000     0.2620964 
 
-## AM5: AM3 without vaccine effect on p or lambda
 
-am5 <- list("ta" = "vac",
-            "NPs" = c("vac", "intTLR7VAC"))
+## AM4.1: tlr7 instead ot tlr7*vac on Np, add vac to lambda
+am4.1 <- am4
+am4.1$lambda <- "vac"
 
 alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am5",
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am4.1",
   model_file, data_file,
-  igs, am5,
+  igs, am4.1,
   headerTypes, error_model,
   fixed = fixed
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 465.725315    493.725315    515.094362    527.919109      5.000000      0.268229 
+# 454.3960248   484.3960248   507.2914327   520.1161795     5.0000000     0.2478875 
 
 
-## AM6: test for tlr7*vac on ta 
-am6 <- list("ta" = c("vac", "intTLR7VAC"),
-            "NPs" = c("vac", "intTLR7VAC"),
-            "lambda" = "vac")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6",
-  model_file, data_file,
-  igs, am6,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 449.4745725   481.4745725   505.8963409   518.7210877     5.0000000     0.2510373 
-
-## AM6.1: test for tlr7*vac on ta 
-am6.1 <- list("ta" = c("vac", "intTLR7VAC"),
-            "NPs" = c("vac", "intTLR7VAC"))
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6.1",
-  model_file, data_file,
-  igs, am6.1,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 458.7402880   488.7402880   511.6356958   524.4604426     5.0000000     0.2692892 
-
-## AM6.2: test for tlr7*vac on ta 
-am6.2 <- list("ta" = c("vac", "intTLR7VAC"),
-            "NPs" = c("vac", "intTLR7VAC"),
-            "m" = "vac")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6.2",
-  model_file, data_file,
-  igs, am6.2,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 450.2078235   482.2078235   506.6295919   519.4543387     5.0000000     0.2654896
-
-## AM6.3: test for tlr7*vac on ta 
-am6.3 <- list("ta" = c("vac", "intTLR7VAC"),
-              "NPs" = c("vac", "intTLR7VAC"),
-              "lambda" = "vac",
-              "p" = "vac")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6.3",
-  model_file, data_file,
-  igs, am6.3,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 440.3472      474.3472      500.2953      513.1201        5.0000        0.1715 
-
-## AM7: test for tlr7*vac on ta 
-am7 <- list("ta" = c("intTLR7VAC"),
-              "NPs" = c("vac", "intTLR7VAC"))
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am7",
-  model_file, data_file,
-  igs, am7,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 465.7983876   493.7983876   515.1674350   527.9921818     5.0000000     0.3502799
-
-
-## AM7: test for tlr7*vac on ta 
-am7.1 <- list("ta" = c("intTLR7VAC"),
-            "NPs" = c("vac", "intTLR7VAC"),
-            "lambda" = "vac")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am7.1",
-  model_file, data_file,
-  igs, am7.1,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 465.3745535   495.3745535   518.2699614   531.0947082     5.0000000     0.3105186 
-
-
-## AM7: test for tlr7*vac on ta 
-am7.2 <- list("ta" = c("intTLR7VAC"),
-              "NPs" = c("vac", "intTLR7VAC"),
-              "m" = "vac")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am7.2",
-  model_file, data_file,
-  igs, am7.2,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 456.3280463   486.3280463   509.2234541   522.0482009     5.0000000     0.2205453 
-
-## AM8: tlr7*vac on ta instead of Np
-am8 <- list("ta" = c("intTLR7VAC", "vac"),
-              "NPs" = c("vac"))
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am8",
-  model_file, data_file,
-  igs, am8,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 467.0504553   495.0504553   516.4195026   529.2442494     5.0000000     0.3468082 
-
-## AM8: tlr7*vac on ta instead of Np
-am8.1 <- list("ta" = c("intTLR7VAC", "vac"),
-            "NPs" = c("vac"),
-            "lambda" = "vac")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am8.1",
-  model_file, data_file,
-  igs, am8.1,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 458.1173874   488.1173874   511.0127952   523.8375420     5.0000000     0.2013012 

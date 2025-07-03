@@ -13,12 +13,12 @@ RERUN <- TRUE
 # Project setup ####
 ## Results folder
 study <- "study3"
-project_name <- "IGS_no_cov_fixed_param.mlxtran"
+project_name <- "IGS_no_cov_fixed_param_new.mlxtran"
 out_folder <- here("results_eclipse", study)
 if(!dir.exists(out_folder)) dir.create(out_folder)
 
 ## Parameters to fix:
-fixed <- c("lambda_pop" = 100, "p_pop" = 1)
+fixed <- c("lambda_pop" = 500, "p_pop" = 1)
 
 ## Model file
 model_file <- here("model", "2regime_model_delay.txt")
@@ -61,7 +61,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 100,
+    nits = 50,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1,
@@ -93,6 +93,9 @@ plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
 ## Assess identifiability
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
+
+correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)), remove_bicc_outliers = T)
+
 compare_estimates(tabestimates, remove_bicc_outliers = T,
                   out_folder = out_folder, project_name = project_name)
 estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)

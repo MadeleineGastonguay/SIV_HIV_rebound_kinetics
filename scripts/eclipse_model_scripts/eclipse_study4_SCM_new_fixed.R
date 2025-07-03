@@ -66,15 +66,12 @@ out <- plot_model_building(mb)
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
        out$plot, width = 10, height = 7)
 
-# BICc: 903.295, FIM 47, all significant
-
 # The fourth covariate does not significantly improve BICc
 out$summary %>% #group_by(n_covar) %>% filter(BICc == min(BICc)) %>% 
   mutate(d = threshold - BICc) %>% filter(d > 0, d < 2)
 
 # AM1: up to model building step 4
 am1 <- list("lambda" = "intTLR7AB",
-            "ta" = "intTLR7VAC",
             "NPs" = c("intTLR7AB", "intTLR7VAC"))
 
 alt_mod(
@@ -86,12 +83,28 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 842.9299727   872.9299727   901.3072772   914.1320240     5.0000000     0.5482523 
+# 848.6952374   876.6952374   903.1807215   916.0054683     5.0000000     0.5216833 
 
 
-# AM2: up to model building step 4 with the alternative treatment effect
-am2 <- list("lambda" = "intTLR7AB",
-            "p" = "intTLR7AB",
+# AM1.1: up to model building step 4 with ab on beta instead of lambda
+am1.1 <- list("betas" = "intTLR7AB",
+            "NPs" = c("intTLR7AB", "intTLR7VAC"))
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am1.1",
+  model_file, data_file,
+  igs, am1.1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 865.5001906   893.5001906   919.9856748   932.8104216     5.0000000     0.5969083 
+
+
+# AM2: up to step 4 with tlr7*vac on p
+am2 <- list("betas" = "intTLR7AB",
+            "p" = "intTLR7VAC",
             "NPs" = c("intTLR7AB", "intTLR7VAC"))
 
 alt_mod(
@@ -103,13 +116,13 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 844.7532917   874.7532917   903.1305962   915.9553430     5.0000000     0.4909552 
+# 861.1636264   891.1636264   919.5409308   932.3656776     5.0000000     0.5090206 
 
-# All significant, but AB reduces p which does not make sense
 
-# AM3: SCM before step 4
+# AM3: up to step 4 with tlr7*vac on ta
 am3 <- list("lambda" = "intTLR7AB",
-            "NPs" = c("intTLR7AB", "intTLR7VAC"))
+            "NPs" = c("intTLR7AB", "intTLR7VAC"),
+            "ta" = "intTLR7VAC")
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3",
@@ -118,57 +131,4 @@ alt_mod(
   headerTypes, error_model,
   fixed = fixed
 )
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 848.6952373   876.6952373   903.1807215   916.0054683     5.0000000     0.5216833 
-
-# AM4: final model with lambda and beta effects swapped
-am4 <- list("betas" = "intTLR7AB",
-            "lambda" = "intTLR7VAC",
-            "ta" = "intTLR7VAC",
-            "p" = c("intTLR7AB", "intTLR7VAC"),
-            "NPs" = c("intTLR7AB", "intTLR7VAC"))
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am4",
-  model_file, data_file,
-  igs, am4,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 850.9595749   886.9595749   921.0123403   933.8370871     5.0000000     0.4663922 
-
-
-# AM5: SCM before step 4 with AB effect on beta instead of lambda
-am5 <- list("betas" = "intTLR7AB",
-            "NPs" = c("intTLR7AB", "intTLR7VAC"))
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am5",
-  model_file, data_file,
-  igs, am5,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 865.5001906   893.5001906   919.9856748   932.8104216     5.0000000     0.5969083 
-
-# AM6: SCM including step 4 with AB effect on beta instead of lambda
-am6 <- list("betas" = "intTLR7AB",
-            "ta" = "intTLR7VAC",
-            "NPs" = c("intTLR7AB", "intTLR7VAC"))
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6",
-  model_file, data_file,
-  igs, am6,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 860.7110928   890.7110928   919.0883973   931.9131441     5.0000000     0.5048768 
 

@@ -13,12 +13,12 @@ RERUN <- TRUE
 # Project setup ####
 ## Results folder
 study <- "study1"
-project_name <- "IGS_no_cov_fixed_param.mlxtran"
+project_name <- "IGS_no_cov_fixed_param_new.mlxtran"
 out_folder <- here("results_eclipse", study)
 if(!dir.exists(out_folder)) dir.create(out_folder)
 
 ## Parameters to fix:
-fixed <- c("lambda_pop" = 100, "p_pop" = 1)
+fixed <- c("lambda_pop" = 200, "p_pop" = 3)
 
 ## Model file
 model_file <- here("model", "2regime_model_delay.txt")
@@ -61,7 +61,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 100,
+    nits = 50,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1,
@@ -91,7 +91,7 @@ plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name)
 
 regime1 <- tabestimates %>% 
-  filter(parameter == "m_pop", estimate < 100, bicc > 435) %>% 
+  filter(parameter == "m_pop", estimate <= 15, bicc > 430) %>% 
   pull(run)
 
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = regime1)
@@ -185,10 +185,10 @@ table_predictions %>%
   scale_y_log10() + 
   color_bicc()
 
-## Very big RSE for m and Np
+## Big RSE for m and Np
 tabestimates %>% filter(bicc == min(bicc))
 
-## Very big RSE for m and some random effects
+## Big RSE for m and some random effects
 tabestimates %>% filter(run %in% regime1) %>% filter(bicc == min(bicc))
 
 ## Save best estimates from regime 1 to use as initial conditions for SCM

@@ -8,17 +8,17 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
 study <- "study2"
-project_name <- "IGS_no_cov_fixed_param.mlxtran"
+project_name <- "IGS_no_cov_fixed_param_new.mlxtran"
 out_folder <- here("results_eclipse", study)
 if(!dir.exists(out_folder)) dir.create(out_folder)
 
 ## Parameters to fix:
-fixed <- c("lambda_pop" = 100, "p_pop" = 1)
+fixed <- c("lambda_pop" = 50, "p_pop" = 0.7)
 
 ## Model file
 model_file <- here("model", "2regime_model_delay.txt")
@@ -61,7 +61,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 100,
+    nits = 50,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1,
