@@ -29,7 +29,7 @@ headerTypes <- c("id", "time", "observation", "cens", rep("catcov", ncol(data) -
 exclude_random_effects <- NULL # Either NULL or a character vector of parameters with no random effects
 
 ## Parameters to fix
-fixed <- c("lambda_pop" = 100, "p_pop" = 1)
+fixed <- c("lambda_pop" = 500, "p_pop" = 1)
 
 ## Error model to use
 # Either "constant", "proportional", "combined1", or "combined2". See ?setErrorModel() for details
@@ -43,30 +43,32 @@ names(error_model) <- names(data)[headerTypes == "observation"]
 initialValue_ranges_narrow <- read_csv(here("results_eclipse", study, "initialValue_ranges_narrow.csv")) %>% 
   column_to_rownames("parameter")
 
+nits <- 50
 parameters <- rownames(initialValue_ranges_narrow)
 
-initialvalues <- NULL
-nits <- 50
-for(i in 1:nits){
-  popini <- sapply(parameters, function(j){
-    if(j %in% names(fixed)){
-      fixed[[j]]
-    }else if(grepl("pop", j)){
-      runif(1, initialValue_ranges_narrow[j,1], initialValue_ranges_narrow[j,2])  
-    }else{
-      1
-    }
-  })
+if(!file.exists(here(out_folder, "initial_values.csv"))){
+  initialvalues <- NULL
+  for(i in 1:nits){
+    popini <- sapply(parameters, function(j){
+      if(j %in% names(fixed)){
+        fixed[[j]]
+      }else if(grepl("pop", j)){
+        runif(1, initialValue_ranges_narrow[j,1], initialValue_ranges_narrow[j,2])  
+      }else{
+        1
+      }
+    })
+    
+    # set sampled values as new initial estimates
+    newpopparams <- data.frame(parameter = parameters, initialValue = popini) %>% 
+      mutate(method = ifelse(parameter %in% names(fixed), "FIXED", "MLE")) %>% 
+      remove_rownames()
+    initialvalues <- rbind(initialvalues, newpopparams %>% mutate(run = i))
+  }
   
-  # set sampled values as new initial estimates
-  newpopparams <- data.frame(parameter = parameters, initialValue = popini) %>% 
-    mutate(method = ifelse(parameter %in% names(fixed), "FIXED", "MLE")) %>% 
-    remove_rownames()
-  initialvalues <- rbind(initialvalues, newpopparams %>% mutate(run = i))
+  
+  write_csv(initialvalues, here(out_folder, "initial_values.csv"))
 }
-
-
-if(!file.exists(here(out_folder, "initial_values.csv"))) write_csv(initialvalues, here(out_folder, "initial_values.csv"))
 
 predefined_initialvalues <- read_csv(here(out_folder, "initial_values.csv"))
 
@@ -79,9 +81,9 @@ predefined_initialvalues %>%
 
 # Final SCM model #####
 # Final model from SCM:
-# a on beta and NP, tlr7 on m
+# ab on beta and p, tlr7 on m
 alt_mod <- "final_model"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -181,17 +183,16 @@ table_predictions %>%
 
 dev.off()
 
-# AM2 #####
-# AM2 from SCM 
+# AM1 #####
 # swap ab effect on p for Np 
-alt_mod <- "am2"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+alt_mod <- "am1"
+loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_result_am2 <- initial_guess_sampling(
+parameter_results_am1 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = T, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -200,11 +201,11 @@ parameter_result_am2 <- initial_guess_sampling(
 )
 
 
-for(name in names(parameter_result_am2)){
-  assign(name, parameter_result_am2[[name]])
+for(name in names(parameter_results_am1)){
+  assign(name, parameter_results_am1[[name]])
 }
 
-save(list = names(parameter_result_am2),
+save(list = names(parameter_results_am1),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
@@ -285,16 +286,16 @@ table_predictions %>%
 dev.off()
 
 
-# BH1.1 #####
-# ab effect on ta, Np, beta and tlr7 effect on m
-alt_mod <- "bh1.1"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+# AM2 #####
+# ab effect on lambda instead of beta
+alt_mod <- "am2"
+loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_results_bh1 <- initial_guess_sampling(
+parameter_results_am2 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = T, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -303,11 +304,11 @@ parameter_results_bh1 <- initial_guess_sampling(
 )
 
 
-for(name in names(parameter_results_bh1)){
-  assign(name, parameter_results_bh1[[name]])
+for(name in names(parameter_results_am2)){
+  assign(name, parameter_results_am2[[name]])
 }
 
-save(list = names(parameter_results_bh1),
+save(list = names(parameter_results_am2),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
@@ -391,73 +392,11 @@ dev.off()
 
 
 
-# BH3 #####
-# ab effect on Np, beta and tlr7 effect on m, interaction on Np
-alt_mod <- "bh3"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
-project_name <- str_interp("IGS_${alt_mod}.mlxtran")
-saveProject(here(out_folder, project_name))
-# loadProject(here(out_folder, project_name))
-
-# Run convergence for narrower range of values
-parameter_results_bh3 <- initial_guess_sampling(
-  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
-  set_variance = 1, record_shrinkage = T, fixed = fixed, 
-  predefined_initialvalues = predefined_initialvalues, 
-  record_pvals = TRUE, record_indiv_params = TRUE,
-  record_condition_number = TRUE, record_table = TRUE
-)
-
-
-for(name in names(parameter_results_bh3)){
-  assign(name, parameter_results_bh3[[name]])
-}
-
-save(list = names(parameter_results_bh3),
-     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-# load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
-for(parameter in getPopulationParameterInformation()$name){
-  if(parameter %in% names(fixed)) next
-  print(parameter)
-  print(
-    parameter_plots(
-      parameter,
-      remove_bicc_outliers = F, 
-      remove_estimate_outliers = F,
-      NULL, tabestimates, tabiters,
-      phase, initialvalues
-    )
-  )
-}
-dev.off()
-
-
-
-plot_bicc_v_estimate(
-  tabestimates, log10_x = F,
-  out_folder = out_folder, project_name = project_name
-)
-
-# Still a correlation between ta an beta and m and ta
-correlate_estimates(tabestimates, 
-                    out_folder = out_folder, project_name = project_name)
-
-correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
-
-compare_estimates(tabestimates, 
-                  out_folder = out_folder, project_name = project_name)
-
-estimate_boxplots(tabestimates, out_folder = out_folder, project_name = project_name)
-
-
 
 
 # Compare results ####
 
-ams <- c("final_model","am2", "bh1.1", "bh3")
+ams <- c("final_model","am1", "am2")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL
@@ -504,8 +443,9 @@ all_tabestimates %>%
   count(best)
 
 # best            n
-# final_model    15
-# am2            35
+#   1 final_model    28
+# 2 am1            11
+# 3 am2            11
 
 # The biological hypotheses are never the best
 
@@ -520,10 +460,10 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
   count(am, equal_to_best) 
 
 # am          equal_to_best     n
-# final_model TRUE             40
-# am2         TRUE             49
-# bh1.1       TRUE              1
-# bh3         TRUE              1
+# <fct>       <lgl>         <int>
+#   1 final_model TRUE             43
+# 2 am1         TRUE             33
+# 3 am2         TRUE             31
 
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
@@ -545,8 +485,7 @@ all_tabestimates_bicc %>%
 
 
 # How frequently are the treatment effects significant?
-# tlr7*ab effect is never significant on Np (BH3)
-# ab effect is never significant on ta (BH1.1)
+# ab effect on lambda is significant less frequently than ab effect on beta
 
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
@@ -590,7 +529,7 @@ all_condition_numbers %>%
 
 ## look at RSE for best fits of two similar models:
 # The best model BICs are indistinguishible
-all_tabestimates %>% filter(am %in% c("final_model", "am2")) %>% 
+all_tabestimates %>% filter(am %in% c("final_model", "am1")) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) %>% 
   arrange(parameter, am) %>% filter(abs(rses) > 50) %>% view
 
@@ -598,7 +537,7 @@ all_tabestimates %>% filter(am %in% c("final_model", "am2")) %>%
 ## Compare EBEs for best models:
 
 pop_param <- all_tabestimates %>% 
-  filter(am %in% c("final_model", "am2")) %>% 
+  filter(am %in% c("final_model", "am1")) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) 
 
 pop_param <- rbind(
@@ -641,9 +580,9 @@ pop_param <- rbind(
     rename(parameter = p)
 )
 
-## There is some evidence for a tlr7 effect on m, but is it strong enough to include in the model???
+
 all_indivParams %>%
-  filter(am %in% c("final_model", "am2")) %>% 
+  filter(am %in% c("final_model", "am1")) %>% 
   left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
   left_join(distinct(data, id, tlr7, ab) %>% 
               mutate(id = as.character(id))) %>% 
@@ -657,3 +596,22 @@ all_indivParams %>%
   geom_point(data = pop_param, shape = 17, size = 4, position = position_dodge(width = 0.9))
 
 
+all_tabestimates %>% 
+  group_by(am) %>% 
+  filter(bicc == min(bicc)) %>% view
+
+
+
+## Save best model ####
+
+best_run <- all_tabestimates %>% filter(am == "am1") %>% filter(bicc == min(bicc))
+igs <- all_initialvalues %>% filter(am == "am1", run == unique(best_run$run))
+
+loadProject(here(out_folder, "IGS_am1.mlxtran"))
+saveProject(here("results_eclipse", study, "best_model.mlxtran"))
+
+set_base(igs %>% rename(estimate = initialValue), fixed = fixed)
+runScenario()
+saveProject(here("results_eclipse", study, "best_model.mlxtran"))
+
+generate_report(here("results_eclipse", study, "best_model.mlxtran"))

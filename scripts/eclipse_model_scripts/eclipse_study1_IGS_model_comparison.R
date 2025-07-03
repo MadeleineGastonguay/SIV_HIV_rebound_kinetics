@@ -29,7 +29,7 @@ headerTypes <- c("id", "time", "observation", "cens", rep("catcov", ncol(data) -
 exclude_random_effects <- NULL # Either NULL or a character vector of parameters with no random effects
 
 ## Parameters to fix
-fixed <- c("lambda_pop" = 100, "p_pop" = 1)
+fixed <- c("lambda_pop" = 200, "p_pop" = 3)
 
 ## Error model to use
 # Either "constant", "proportional", "combined1", or "combined2". See ?setErrorModel() for details
@@ -46,33 +46,33 @@ initialValue_ranges_narrow <- read_csv(here("results_eclipse", study, "initialVa
 parameters <- rownames(initialValue_ranges_narrow)
 
 initialvalues <- NULL
-nits <- 50
-for(i in 1:nits){
-  popini <- sapply(parameters, function(j){
-    if(j %in% names(fixed)){
-      fixed[[j]]
-    }else if(grepl("pop", j)){
-      runif(1, initialValue_ranges_narrow[j,1], initialValue_ranges_narrow[j,2])  
-    }else{
-      1
-    }
-  })
-  
-  # set sampled values as new initial estimates
-  newpopparams <- data.frame(parameter = parameters, initialValue = popini) %>% 
-    mutate(method = ifelse(parameter %in% names(fixed), "FIXED", "MLE")) %>% 
-    remove_rownames()
-  initialvalues <- rbind(initialvalues, newpopparams %>% mutate(run = i))
+nits <- 100
+
+if(!file.exists(here(out_folder, "initial_values.csv"))){
+  for(i in 1:nits){
+    popini <- sapply(parameters, function(j){
+      if(j %in% names(fixed)){
+        fixed[[j]]
+      }else if(grepl("pop", j)){
+        runif(1, initialValue_ranges_narrow[j,1], initialValue_ranges_narrow[j,2])  
+      }else{
+        1
+      }
+    })
+    
+    # set sampled values as new initial estimates
+    newpopparams <- data.frame(parameter = parameters, initialValue = popini) %>% 
+      mutate(method = ifelse(parameter %in% names(fixed), "FIXED", "MLE")) %>% 
+      remove_rownames()
+    initialvalues <- rbind(initialvalues, newpopparams %>% mutate(run = i))
+  }
+
+write_csv(initialvalues, here(out_folder, "initial_values.csv"))
 }
 
-
-if(!file.exists(here(out_folder, "initial_values.csv"))) write_csv(initialvalues, here(out_folder, "initial_values.csv"))
-if(!file.exists(here(out_folder, "initial_values2.csv"))) write_csv(initialvalues, here(out_folder, "initial_values2.csv"))
-
 predefined_initialvalues <- read_csv(here(out_folder, "initial_values.csv"))
-predefined_initialvalues2 <- read_csv(here(out_folder, "initial_values2.csv"))
 
-rbind(predefined_initialvalues, predefined_initialvalues2) %>% 
+predefined_initialvalues %>% 
   ggplot(aes(parameter, initialValue)) +
   geom_boxplot() + 
   facet_wrap(~parameter, scales = "free")
@@ -81,9 +81,9 @@ rbind(predefined_initialvalues, predefined_initialvalues2) %>%
 
 # Final SCM model #####
 # Final model from SCM:
-# TLR7 effect on ta, lambda, and p
+# TLR7 effect on ta, beta, and p
 alt_mod <- "final_model"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -130,7 +130,14 @@ plot_bicc_v_estimate(
   out_folder = out_folder, project_name = project_name
 )
 
-low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 10) %>% pull(run)
+low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 100) %>% pull(run)
+# 40 estimates in this regime
+length(low_m_regime)
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  color = low_m_regime
+)
 
 plot_vs_rses(tabestimates, out_folder, project_name)
 
@@ -155,6 +162,14 @@ compare_estimates(
   out_folder = out_folder, project_name = project_name,
   file_addendum = "_big_m"
 )
+
+estimate_boxplots(tabestimates %>% filter(run %in% low_m_regime),
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_low_m")
+
+estimate_boxplots(tabestimates %>% filter(!run %in% low_m_regime),
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_big_m")
 
 pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
 
@@ -197,17 +212,17 @@ table_predictions %>%
 dev.off()
 
 
-# AM1 #####
-# AM1 from SCM 
+# AM2 #####
+# AM2 from SCM 
 # TLR7 effect on ta and lambda
-alt_mod <- "am1"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+alt_mod <- "am2"
+loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_result_am1 <- initial_guess_sampling(
+parameter_results_am2 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = T, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -215,41 +230,14 @@ parameter_result_am1 <- initial_guess_sampling(
   record_condition_number = TRUE, record_table = TRUE
 )
 
-# Run convergence for narrower range of values
-parameter_result_am1.2 <- initial_guess_sampling(
-  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
-  set_variance = 1, record_shrinkage = T, fixed = fixed, 
-  predefined_initialvalues = predefined_initialvalues2, 
-  record_pvals = TRUE, record_indiv_params = TRUE,
-  record_condition_number = TRUE, record_table = TRUE
-)
-
-for(name in names(parameter_result_am1)){
-  assign(name, parameter_result_am1[[name]])
+for(name in names(parameter_results_am2)){
+  assign(name, parameter_results_am2[[name]])
 }
 
-save(list = names(parameter_result_am1),
+save(list = names(parameter_results_am2),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-max_run <- max(tabestimates$run)
-
-# combine elements of parameter_results_am3.2 with parameter_results_am3.2 and update the run number in results 2 to add 50 
-tabestimates <- rbind(tabestimates, parameter_result_am1.2$tabestimates %>% mutate(run = run + max_run))
-tabiters <- rbind(tabiters, parameter_result_am1.2$tabiters %>% mutate(run = run + max_run))
-phase <- rbind(phase, parameter_result_am1.2$phase)
-initialvalues <- rbind(initialvalues, parameter_result_am1.2$initialvalues %>% mutate(run = run + max_run))
-shrinkage <- rbind(shrinkage, parameter_result_am1.2$shrinkage %>% mutate(run = run + max_run))
-indivParams <- rbind(indivParams, parameter_result_am1.2$indivParams %>% mutate(run = run + max_run))
-indivFit <- rbind(indivFit, parameter_result_am1.2$indivFit %>% mutate(run = run + max_run))
-table_predictions <- rbind(table_predictions, parameter_result_am1.2$table_predictions %>% mutate(run = run + max_run))
-pvals <- rbind(pvals, parameter_result_am1.2$pvals %>% mutate(run = run + max_run))
-condition_number <- rbind(condition_number, parameter_result_am1.2$condition_number %>% mutate(run = run + max_run))
-
-save(list = names(parameter_result_am1.2),
-     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS_100its.RData"))
-
 
 
 pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
@@ -276,7 +264,12 @@ plot_bicc_v_estimate(
   out_folder = out_folder, project_name = project_name
 )
 
-low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 20) %>% pull(run)
+low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 200) %>% pull(run)
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  color = low_m_regime
+)
 
 plot_vs_rses(tabestimates %>% filter(run %in% low_m_regime), out_folder, project_name, 
              file_addendum = "_low_m")
@@ -287,6 +280,8 @@ correlate_estimates(
   file_addendum = "_low_m"
 )
 
+
+# No lingering correlations in the low m regime
 correlate_estimates(
   tabestimates %>% filter(run %in% low_m_regime, grepl("pop", parameter))
 )
@@ -306,6 +301,11 @@ compare_estimates(
 estimate_boxplots(tabestimates %>% filter(run %in% low_m_regime), 
                   out_folder = out_folder, project_name = project_name,
                   file_addendum = "_low_m")
+
+
+estimate_boxplots(tabestimates %>% filter(!run %in% low_m_regime), 
+                  out_folder = out_folder, project_name = project_name,
+                  file_addendum = "_big_m")
 
 pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots_low_m.pdf"), width = 7, height = 8)
 for(parameter in getPopulationParameterInformation()$name){
@@ -364,149 +364,10 @@ table_predictions %>%
 dev.off()
 
 
-# AM3 #####
-# AM3 from SCM 
-# TLR7 effect on ta, lambda, and m
-alt_mod <- "am3"
-loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
-project_name <- str_interp("IGS_${alt_mod}.mlxtran")
-saveProject(here(out_folder, project_name))
-# loadProject(here(out_folder, project_name))
-
-# Run convergence for narrower range of values
-parameter_results_am3 <- initial_guess_sampling(
-  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
-  set_variance = 1, record_shrinkage = T, fixed = fixed, 
-  predefined_initialvalues = predefined_initialvalues, 
-  record_pvals = TRUE, record_indiv_params = TRUE,
-  record_condition_number = TRUE, record_table = TRUE
-)
-
-parameter_results_am3.2 <- initial_guess_sampling(
-  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
-  set_variance = 1, record_shrinkage = T, fixed = fixed, 
-  predefined_initialvalues = predefined_initialvalues2, 
-  record_pvals = TRUE, record_indiv_params = TRUE,
-  record_condition_number = TRUE, record_table = TRUE
-)
-
-
-for(name in names(parameter_results_am3)){
-  assign(name, parameter_results_am3[[name]])
-}
-
-
-save(list = names(parameter_results_am3),
-     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-# load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-max_run <- max(tabestimates$run)
-
-# combine elements of parameter_results_am3.2 with parameter_results_am3.2 and update the run number in results 2 to add 50 
-tabestimates <- rbind(tabestimates, parameter_results_am3.2$tabestimates %>% mutate(run = run + max_run))
-tabiters <- rbind(tabiters, parameter_results_am3.2$tabiters %>% mutate(run = run + max_run))
-phase <- rbind(phase, parameter_results_am3.2$phase)
-initialvalues <- rbind(initialvalues, parameter_results_am3.2$initialvalues %>% mutate(run = run + max_run))
-shrinkage <- rbind(shrinkage, parameter_results_am3.2$shrinkage %>% mutate(run = run + max_run))
-indivParams <- rbind(indivParams, parameter_results_am3.2$indivParams %>% mutate(run = run + max_run))
-indivFit <- rbind(indivFit, parameter_results_am3.2$indivFit %>% mutate(run = run + max_run))
-table_predictions <- rbind(table_predictions, parameter_results_am3.2$table_predictions %>% mutate(run = run + max_run))
-pvals <- rbind(pvals, parameter_results_am3.2$pvals %>% mutate(run = run + max_run))
-condition_number <- rbind(condition_number, parameter_results_am3.2$condition_number %>% mutate(run = run + max_run))
-
-save(list = names(parameter_results_am3.2),
-     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS_100its.RData"))
-
-load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS_100its.RData"))
-
-
-pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
-for(parameter in getPopulationParameterInformation()$name){
-  if(parameter %in% names(fixed)) next
-  print(parameter)
-  print(
-    parameter_plots(
-      parameter,
-      remove_bicc_outliers = F, 
-      remove_estimate_outliers = F,
-      NULL, tabestimates, tabiters,
-      phase, initialvalues
-    )
-  )
-}
-dev.off()
-
-
-# two regimes
-plot_bicc_v_estimate(
-  tabestimates, log10_x = F,
-  out_folder = out_folder, project_name = project_name
-)
-
-low_ta_regime <- tabestimates %>% filter(parameter == "ta_pop", estimate <= 0.4) %>% pull(run)
-
-correlate_estimates(
-  tabestimates %>% filter(run %in% low_ta_regime), 
-  out_folder = out_folder, project_name = project_name,
-  file_addendum = "_low_ta")
-
-# No lingering correlations
-correlate_estimates(tabestimates %>% filter(run %in% low_ta_regime, grepl("pop", parameter)))
-
-compare_estimates(tabestimates %>% filter(run %in% low_ta_regime), 
-                  out_folder = out_folder, project_name = project_name,
-                  file_addendum = "_low_ta")
-
-estimate_boxplots(tabestimates %>% filter(run %in% low_ta_regime), 
-                  out_folder = out_folder, project_name = project_name,
-                  file_addendum = "_low_ta")
-
-
-pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
-table_predictions %>% 
-  ggplot(aes(time, V_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
-  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
-  geom_line(alpha = 0.5) +
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  labs(color = "low m, low ta regime")
-
-table_predictions %>% 
-  ggplot(aes(time, P_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  labs(color = "low m, low ta regime")
-
-table_predictions %>% 
-  ggplot(aes(time, E_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  labs(color = "low m, low ta regime")
-
-table_predictions %>% 
-  ggplot(aes(time, I_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  labs(color = "low m, low ta regime")
-
-table_predictions %>% 
-  ggplot(aes(time, T_mode, color = run %in% low_ta_regime, group = factor(run)))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  labs(color = "low m, low ta regime")
-
-dev.off()
-
-
 
 # Compare results ####
 
-ams <- c("final_model","am1", "am3")
+ams <- c("final_model","am2")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL
@@ -557,12 +418,14 @@ all_tabestimates %>%
   count(best)
 
 # best            n
-# final_model    37
-# am1             3
-# am3            10
+# <fct>       <int>
+#   1 final_model    52
+# 2 am2            48
+
+# The final model was the best more frequently because it landed in the immune control regime more often
 
 ## filter to low ta, low m, lower measurement error regime:
-regime1 <- all_tabestimates %>% filter(parameter == "a", estimate < 0.32) %>%
+regime1 <- all_tabestimates %>% filter(parameter == "omega_ta", estimate > 1) %>%
   mutate(t = paste(am, run, sep = ".")) %>% pull(t)
 
 all_tabestimates %>% 
@@ -583,9 +446,9 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
   count(am, equal_to_best) 
 
 # am          equal_to_best     n
-# 1 final_model TRUE              9
-# 2 am1         TRUE             11
-# 3 am3         TRUE             25
+# <fct>       <lgl>         <int>
+#   1 final_model TRUE             17
+# 2 am2         TRUE             85
 
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
@@ -607,7 +470,7 @@ all_tabestimates_bicc %>%
   facet_wrap(~ (paste(am, run, sep = ".") %in% regime1), scales = "free_x")
 
 
-# How frequently is the tlr7 effect on m and p signficant?
+# How frequently is the tlr7 effect on p signficant?
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr"),
          regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
@@ -620,9 +483,7 @@ all_pvals %>%
 # theme(legend.position = "none")
 
 # tlr7 effect on p in final SCM model is never significant in the desired regime
-# tlr7 effect on m in am 3 is signficant less than 50% of the time in the desired regime
 all_pvals %>% 
-  filter(am != "final_model") %>% 
   mutate(padj = p.adjust(p.value, method = "fdr"),
          regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
   left_join(distinct(., am, run, regime1) %>% add_count(am, regime1, name = "n_r1")) %>% 
@@ -673,7 +534,7 @@ all_condition_numbers %>%
 
 all_indivFit %>%
   left_join(distinct(data, id, tlr7)) %>% 
-  filter(am != "final_model") %>% 
+  # filter(am != "final_model") %>% 
   mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
   ggplot(aes(time, popPred, color = am, group = interaction(am, run))) +
   geom_point(data = data, inherit.aes = F, aes(time, vl), alpha = 0.5) +
@@ -684,7 +545,7 @@ all_indivFit %>%
   left_join(distinct(data, id, tlr7)) %>% 
   left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
   mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
-  filter(am != "final_model", regime1) %>% 
+  filter( regime1) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) %>% 
   ggplot(aes(time, indivPred_mode, color = am, group = interaction(am, run))) +
   geom_point(data = data, inherit.aes = F, aes(time, vl), alpha = 0.5) +
@@ -696,12 +557,12 @@ all_indivParams %>%
   left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
   left_join(distinct(data, id, tlr7) %>% mutate(id = as.character(id))) %>% 
   mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
-  filter(am != "final_model", regime1) %>% 
+  filter( regime1) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) %>% 
   select(-run, -bicc, -regime1) %>% 
   pivot_longer(!c(id, am, tlr7), names_to = "parameter") %>% 
   pivot_wider(names_from = am) %>% 
-  ggplot(aes(am1, am3, color = factor(tlr7))) + 
+  ggplot(aes(am2, final_model, color = factor(tlr7))) + 
   geom_point() + 
   geom_abline() + 
   facet_wrap(~parameter, scales = "free")  + 
@@ -710,7 +571,7 @@ all_indivParams %>%
 
 pop_param <- all_tabestimates %>% 
   mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
-  filter(regime1, am != "final_model") %>% 
+  filter(regime1) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) 
 
 pop_param <- rbind(
@@ -736,7 +597,7 @@ all_indivParams %>%
   left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
   left_join(distinct(data, id, tlr7) %>% mutate(id = as.character(id))) %>% 
   mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
-  filter(am != "final_model", regime1) %>% 
+  filter( regime1) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) %>% 
   select(-run, -bicc, -regime1) %>% 
   pivot_longer(!c(id, am, tlr7), names_to = "parameter")  %>% 
@@ -749,10 +610,74 @@ all_indivParams %>%
 
 # Ridiculously large RSE for m in am3
 all_tabestimates %>% 
-  filter(am != "final_model", paste(am, run, sep = ".") %in% regime1) %>% 
+  filter( paste(am, run, sep = ".") %in% regime1) %>% 
   group_by(am) %>% filter(bicc == min(bicc)) 
 
 # Best BICcs are not noticeably different
 all_tabestimates %>% 
-  filter(am != "final_model", paste(am, run, sep = ".") %in% regime1) %>% 
+  filter( paste(am, run, sep = ".") %in% regime1) %>% 
   group_by(am) %>% filter(bicc == min(bicc))  %>% distinct(am, bicc)
+
+
+## Save best model ####
+
+# Run with minimum BICc has massive RSE for m and ta... find the next best
+best_run <- all_tabestimates %>% 
+  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(bicc == min(bicc))
+
+best_run <- all_tabestimates %>% 
+  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(bicc != min(bicc)) %>% 
+  filter(bicc == min(bicc))
+
+# P-vlaue for tlr7 effect on lambda is not signficant... 
+all_pvals %>% filter(am == "am2", run == unique(best_run$run))
+all_condition_numbers %>% filter(am == "am2", run == unique(best_run$run))
+
+temp_pval <- all_pvals %>% 
+  filter(am == "am2") %>% 
+  select(-statistics) %>% 
+  pivot_wider(names_from = parameter, values_from = p.value) %>% 
+  mutate(signif = case_when(beta_lambda_tlr7_1 < 0.05 & beta_ta_tlr7_1 < 0.05 ~ "both",
+                            beta_lambda_tlr7_1 < 0.05 & beta_ta_tlr7_1 > 0.05 ~ "lambda",
+                            beta_lambda_tlr7_1 > 0.05 & beta_ta_tlr7_1 < 0.05 ~ "ta",
+                            .default = "neither"))
+
+all_tabestimates %>% 
+  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
+  distinct(am, run, bicc) %>% 
+  left_join(all_condition_numbers) %>% 
+  left_join(temp_pval) %>% 
+  ggplot(aes(signif, bicc, color = condition_number <= 100)) + geom_beeswarm()
+
+all_tabestimates %>% 
+  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
+  left_join(all_condition_numbers) %>% 
+  left_join(temp_pval) %>% 
+  # filter(grepl("pop", parameter) | grepl("beta_", parameter)) %>% 
+  group_by(signif) %>% filter(bicc == min(bicc)) %>% 
+  ggplot(aes(signif, estimate)) + geom_col() + 
+  geom_errorbar(data = . %>% filter(rses < 1e3),
+                aes(ymin = estimate*(1-rses/100), ymax = estimate*(1+rses/100), color = rses < 100), width = 0.1) +
+  facet_wrap(~parameter, scales = "free_y") 
+
+
+# Use estimate that has best BICc when both effects are significant (also has smaller RSE)
+best_run <- all_tabestimates %>% 
+  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
+  left_join(select(temp_pval, am, run, signif)) %>% 
+  filter(signif == "both") %>% 
+  select(-signif) %>% 
+  filter(bicc == min(bicc))
+
+igs <- all_initialvalues %>% filter(am == "am2", run == unique(best_run$run))
+
+loadProject(here(out_folder, "IGS_am2.mlxtran"))
+saveProject(here("results_eclipse", study, "best_model.mlxtran"))
+
+set_base(igs %>% rename(estimate = initialValue), fixed = fixed)
+runScenario()
+saveProject(here("results_eclipse", study, "best_model.mlxtran"))
+generate_report(here("results_eclipse", study, "best_model.mlxtran"))
+
