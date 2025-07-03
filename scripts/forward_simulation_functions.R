@@ -1,4 +1,5 @@
-
+require(lamW)
+require(deSolve)
 
 # Model definition ####
 
@@ -10,6 +11,31 @@ ctl_nonlytic_identifiable_virus<- function(t, state, parameters){
     
     d_Tar <- (t >= t_go) * (L - Tar*B*V - Tar*dTar) #Uninfected cells
     d_I <- (t >= t_go) * (a + B * Tar * V / (1 + E / N_E) - I*dI) #Infected cells
+    d_V <- (t >= t_go) * (k * I - c *V) #Virus
+    d_P <- (t >= t_go) * (m + p*(1-f)*P*V/(N_P+V) - P*dP)  #Precurors
+    d_E <- (t >= t_go) * (P*p*f*V/(N_P+V) - E*dE)#Effectors
+    
+    return(list(c(d_Tar, d_I, d_V, d_P, d_E)))
+  })
+}
+
+ctl_nonlytic_identifiable_virus_delay <- function(t, state, parameters){
+  
+  with(as.list(c(state, parameters)), {
+    tauQ <- 1
+    if(t < tauQ){
+      Tar_lag <- Tar
+      V_lag <- V
+    }else{
+      Tar_lag <- lagvalue(t - tauQ, 1)
+      V_lag <- lagvalue(t - tauQ, 3)  
+    }
+    if(t %in% 0:5){
+      print(paste("t", t, "T", Tar, "Tar_lag", Tar_lag, "V", V, "V_lag", V_lag))
+    }
+    
+    d_Tar <- (t >= t_go) * (L - Tar*B*V - Tar*dTar) #Uninfected cells
+    d_I <- (t >= t_go) * (a + B * Tar_lag * V_lag * exp(-dTar * tauQ) / (1 + E / N_E) - I*dI) #Infected cells
     d_V <- (t >= t_go) * (k * I - c *V) #Virus
     d_P <- (t >= t_go) * (m + p*(1-f)*P*V/(N_P+V) - P*dP)  #Precurors
     d_E <- (t >= t_go) * (P*p*f*V/(N_P+V) - E*dE)#Effectors
@@ -50,6 +76,28 @@ ctl_nonlytic_identifiable_virus_ls <- function(t, state, parameters){
   })
 }
 
+ctl_nonlytic_identifiable_virus_ls_delay <- function(t, state, parameters){
+  
+  with(as.list(c(state, parameters)), {
+    tauQ <- 1
+    if(t < tauQ){
+      Tar_lag <- Tar
+      V_lag <- V
+    }else{
+      Tar_lag <- lagvalue(t - tauQ, 1)
+      V_lag <- lagvalue(t - tauQ, 3)  
+    }
+  
+    d_Tar <- (t >= t_go) * (L*exp(-1*Tar) - B*exp(V) - dTar) #Uninfected cells
+    d_I <- (t >= t_go) * (exp(a_log-I) + B * exp(Tar_lag + V_lag - dTar*tauQ - I) / (1 + (exp(E) / N_E)) - dI) #Infected cells
+    d_V <- (t >= t_go) * (k * exp(I - V) - c) #1/log(10)*( a*kdv*10^(-1*v) + B*kdv*10^x*(Nb/(Nb+10^z)) - dy ) #Virus
+    d_P <- (t >= t_go) * (m * exp(-1*P) + p*(1-f)*exp(V)/(N_P+exp(V)) - dP)  #Precurors
+    d_E <- (t >= t_go) * (exp(P-E)*p*f*exp(V)/(N_P+exp(V)) - dE)#Effectors
+    
+    return(list(c(d_Tar, d_I, d_V, d_P, d_E)))
+  })
+}
+
 ctl_nonlytic_identifiable_virus_ls_eclipse <- function(t, state, parameters){
   
   with(as.list(c(state, parameters)), {
@@ -67,12 +115,13 @@ ctl_nonlytic_identifiable_virus_ls_eclipse <- function(t, state, parameters){
 
 
 # Simulation function ####
-sim_traj_final <- function(parameters, return_full){
-
+sim_traj_final <- function(parameters, return_full, delay = F){
+  
   
   log_rebound_threshold <- log(50)
   
   max_immune_level_P <- 1000 * N_E
+  tauQ <- 1 # delay for delay model
   
   L <- parameters[1]
   B <- parameters[2]
@@ -101,9 +150,15 @@ sim_traj_final <- function(parameters, return_full){
   
   #functions
   R_0 <- L * B * k / ((1 + E_ART/N_E)*dTar*dI*c)
-  r <- max(0, (-(c + dI) + sqrt((c - dI)^2 + 4 * c * dI * R_0))/2)
+  if(delay) R_0 <- R_0*exp(-dTar*tauQ)
+  if(!delay){
+    r <- max(0, (-(c + dI) + sqrt((c - dI)^2 + 4 * c * dI * R_0))/2)
+  }else{
+    r <- 1/tauQ*lambertW0(R_0*tauQ*dI*c/(dI + c)*exp(tauQ*dI*c/(dI + c))) - dI*c/(dI + c)
+  }
   if(R_0 > 1){
     p_surv <- (lambertW0(-R_0 * exp(-R_0)) + R_0) / (R_0 + rho - 1) 
+    if(delay) p_surv <- p_surv*exp(dTar * tauQ)
     print(c(R_0, r))
   } else {
     p_surv <- 0
@@ -143,9 +198,6 @@ sim_traj_final <- function(parameters, return_full){
   }
   
   
-  
-  
-  
   Tar_0 <- T_ART
   if(R_0 > 1){
     I_0 <- max(w_weight*I_ART, I1/p_surv)
@@ -156,8 +208,6 @@ sim_traj_final <- function(parameters, return_full){
   P_0 <- P_ART
   E_0 <- E_ART
   
-  times_seq <- seq(from=0, to=365, by=.1)
-  
   
   y_start <- c(Tar = Tar_0, I = I_0, V = V_0, P=P_0, E=E_0)
   
@@ -165,17 +215,27 @@ sim_traj_final <- function(parameters, return_full){
   
   names(y_start) <- c("Tar", "I", "V", "P", "E") 
   
-  pars_adjusted <- c(parameters, log(a), t_go)
-  names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a_log", "t_go")
+  # pars_adjusted <- c(parameters, log(a), t_go)
+  # names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a_log", "t_go")
+  pars_adjusted <- c(parameters, (a), t_go)
+  names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a", "t_go")
+  
   
   if(sum(is.nan(y_start)) > 0){
     print("STARTING CONDITION NAN")
-    print(y_start)
+    print(y_start) 
     print(parameters)
   }
   
+  if(!delay){
+    times_seq <- seq(from=0, to=365, by=.1)
+    out <- ode(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls, parms = pars_adjusted,  atol=0)
+  }else{
+    times_seq <- seq(from=0, to=365, by=.1)
+    # out <- dede(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls_delay, parms = pars_adjusted,  atol=0)
+    out <- dede(y_start, times = times_seq, func = ctl_nonlytic_identifiable_virus_delay, parms = pars_adjusted,  atol=0)
+  }
   
-  out <- ode(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls, parms = pars_adjusted,  atol=0)
   
   peak_VL <- max(out[,"V"])
   final_VL <- out[nrow(out),"V"]
@@ -228,6 +288,7 @@ sim_traj_final_eclipse <- function(parameters, return_full){
   p <- parameters[5]
   N_P <- parameters[6]
   
+  q <- 1
   
   #ART time-averaged parameters
   T_ART <- L/dTar
@@ -304,8 +365,6 @@ sim_traj_final_eclipse <- function(parameters, return_full){
   
   
   
-  
-  
   Tar_0 <- T_ART
   if(R_0 > 1){
     I_0 <- max(w_weight*I_ART, I1/p_surv)
@@ -315,7 +374,7 @@ sim_traj_final_eclipse <- function(parameters, return_full){
   V_0 <- k/c * I_0
   P_0 <- P_ART
   E_0 <- E_ART
-  Q_0 <- 1e-12
+  Q_0 <- 1e-3
   
   times_seq <- seq(from=0, to=365, by=.1)
   

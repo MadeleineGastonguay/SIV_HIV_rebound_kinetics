@@ -13,7 +13,6 @@ require(GGally)
 require(ggpubr)
 require(ggpmisc)
 
-
 # Define project settings and scenario tasks ####
 
 set_project_settings <- function(){
