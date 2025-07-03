@@ -13,7 +13,7 @@ RERUN <- FALSE
 # Project setup ####
 ## Results folder
 study <- "study2"
-project_name <- "IGS_no_cov_fixed_param_new.mlxtran"
+project_name <- "IGS_no_cov_fixed_param.mlxtran"
 out_folder <- here("results_eclipse", study)
 if(!dir.exists(out_folder)) dir.create(out_folder)
 
@@ -61,7 +61,7 @@ if(RERUN){
   # Use initial condition of 1 for all random effects
   parameter_results <- initial_guess_sampling(
     initialValue_ranges_narrow, 
-    nits = 50,
+    nits = 100,
     record_shrinkage = T,
     record_indiv_params = T,
     set_variance = 1,
