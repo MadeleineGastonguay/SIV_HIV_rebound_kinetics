@@ -160,7 +160,7 @@ table_predictions %>%
   scale_y_log10() + 
   color_bicc()
 
-## Reasonable RSE for the best estimates
+## Reasonable RSE for the best estimates... high for m
 tabestimates %>% filter(bicc == min(bicc))
 
 # Save best estimates to use as initial conditions for SCM

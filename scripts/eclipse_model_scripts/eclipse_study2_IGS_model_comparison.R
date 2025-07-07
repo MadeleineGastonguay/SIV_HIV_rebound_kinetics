@@ -80,7 +80,7 @@ predefined_initialvalues %>%
 
 # AM1 #####
 alt_mod <- "am1"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -138,16 +138,16 @@ estimate_boxplots(tabestimates,
                   out_folder = out_folder, project_name = project_name)
 
 
-# AM3 #####
+# AM2 #####
 # AM1 with vaccine effect on lambda
-alt_mod <- "am3"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+alt_mod <- "am2"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_result_am3 <- initial_guess_sampling(
+parameter_result_am2 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = T, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -156,11 +156,11 @@ parameter_result_am3 <- initial_guess_sampling(
 )
 
 
-for(name in names(parameter_result_am3)){
-  assign(name, parameter_result_am3[[name]])
+for(name in names(parameter_result_am2)){
+  assign(name, parameter_result_am2[[name]])
 }
 
-save(list = names(parameter_result_am3),
+save(list = names(parameter_result_am2),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
@@ -199,16 +199,16 @@ compare_estimates(tabestimates,
 estimate_boxplots(tabestimates, 
                   out_folder = out_folder, project_name = project_name)
 
-# AM4 #####
-# AM1 with tlr7 on Np instead of tlr7*vac
-alt_mod <- "am4"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+# AM4.1 #####
+# AM2 with tlr7 on Np instead of tlr7*vac
+alt_mod <- "am4.1"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_results_am4 <- initial_guess_sampling(
+parameter_results_am4.1 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = T, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -217,11 +217,11 @@ parameter_results_am4 <- initial_guess_sampling(
 )
 
 
-for(name in names(parameter_results_am4)){
-  assign(name, parameter_results_am4[[name]])
+for(name in names(parameter_results_am4.1)){
+  assign(name, parameter_results_am4.1[[name]])
 }
 
-save(list = names(parameter_results_am4),
+save(list = names(parameter_results_am4.1),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
@@ -265,7 +265,7 @@ estimate_boxplots(tabestimates,
 
 # Compare results ####
 
-ams <- c("am1", "am3", "am4")
+ams <- c("am1", "am2", "am4.1")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL

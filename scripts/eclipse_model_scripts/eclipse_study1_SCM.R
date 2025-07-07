@@ -56,8 +56,6 @@ relationships <- NULL # nothing locked in
 covariate_model_building(here(out_folder, project_name), method = "SCM", criteria = "BIC", 
                          linearization = FALSE, relationships = relationships)
 
-# effect on p is insigficant, FIM cannot be estimated
-# BICc: 420.6444
 
 loadProject(here(out_folder, project_name))
 
@@ -69,11 +67,12 @@ out <- plot_model_building(mb)
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
        out$plot, width = 5, height = 7)
 
+# BICc: 419.3804, treatment effects significant
 
 ## Test alternative models ####
 
-# AM1: no tlr7 effect on p
-am1 <- list("betas" = "tlr7",
+# AM1: no tlr7 effect on lambda instead of beta
+am1 <- list("lambda" = "tlr7",
             "ta" = "tlr7")
 
 alt_mod(
@@ -85,22 +84,7 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 377.0504235   403.0504235   416.6292152   431.0545487     5.0000000     0.4302592 
+# 375.4080188   401.4080188   414.9868105   429.4121440     5.0000000     0.3457871 
 
-
-
-# AM2: tlr7 on lambda instead of beta
-am2 <- list("lambda" = "tlr7",
-            "ta" = "tlr7")
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2",
-  model_file, data_file,
-  igs, am2,
-  headerTypes, error_model,
-  fixed = fixed
-)
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 378.754408    404.754408    418.333200    432.758533      5.000000      0.538462 
-
+# BICc is worse for this model because it is giving estimates in the regime where
+# avearimic monkeys are because of a reduction in reservoir instead of immune control... do IGS for both models

@@ -67,10 +67,11 @@ ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building
        out$plot, width = 10, height = 7)
 
 
-## AM1: Final model without marginally significant effects
+## AM1: Final model without tlr7*vac on ta because it doesn't significantly improve BICc
 
 am1 <- list("ta" = "vac",
-            "NPs" = c("vac", "intTLR7VAC"))
+            "NPs" = c("vac", "intTLR7VAC"),
+            "lambda" = "vac")
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am1",
@@ -80,14 +81,14 @@ alt_mod(
   fixed = fixed
 )
 
-# OFV           AIC           BIC          BICc  chosenDegree 
-# 458.030789    486.030789    507.399836    520.224583      5.000000 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 450.5111415   480.5111415   503.4065493   516.2312961     5.0000000     0.2451323 
 
 
-## AM2: tlr7*vac on ta only
+## AM2: final model without marginally significant effects
 
-am2 <- list("NPs" = "vac",
-            "ta" = c("vac", "intTLR7VAC"))
+am2 <- list("ta" = "vac",
+            "NPs" = c("vac", "intTLR7VAC"))
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2",
@@ -98,30 +99,12 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 459.8923310   487.8923310   509.2613784   522.0861252     5.0000000     0.2412635 
+# 458.030789    486.030789    507.399836    520.224583      5.000000      0.263612 
 
-
-## AM2: tlr7*vac on ta only, keep vaccine effect on lamdba
-am2.1 <- am2
-am2.1$lambda <- "vac"
-
-alt_mod(
-  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2.1",
-  model_file, data_file,
-  igs, am2.1,
-  headerTypes, error_model,
-  fixed = fixed
-)
-# 
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 454.3850019   484.3850019   507.2804098   520.1051566     5.0000000     0.2352656 
-
-
-## AM3: tlr7*vac on Np only
-am3 <- list("ta" = "vac",
-            "NPs" = c("vac", "intTLR7VAC"),
+## AM3: tlr7*vac on ta instead of Np, keep vaccine effect on lamdba
+am3 <- list("ta" = c("vac", "intTLR7VAC"),
+            "NPs" = "vac",
             "lambda" = "vac")
-
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3",
@@ -132,11 +115,27 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 450.5111415   480.5111415   503.4065493   516.2312961     5.0000000     0.2451323 
+# 454.3850019   484.3850019   507.2804098   520.1051566     5.0000000     0.2352656 
 
-## AM4: tlr7 instead ot tlr7*vac on Np:
+## AM3: tlr7*vac on ta instead of Np, no vaccine effect on lamdba
+am3.1 <- list("ta" = c("vac", "intTLR7VAC"),
+            "NPs" = "vac")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3.1",
+  model_file, data_file,
+  igs, am3.1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 459.8923310   487.8923310   509.2613784   522.0861252     5.0000000     0.2412635 
+
+## AM4: tlr7 instead ot tlr7*vac on Np, keep vaccine effect on lambda
 am4 <- list("ta" = "vac",
-            "NPs" = c("tlr7", "vac"))
+            "NPs" = c("tlr7", "vac"),
+            "lambda" = "vac")
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am4",
@@ -147,12 +146,12 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 458.9896446   486.9896446   508.3586920   521.1834387     5.0000000     0.2620964 
+# 454.3960248   484.3960248   507.2914327   520.1161795     5.0000000     0.2478875 
 
 
-## AM4.1: tlr7 instead ot tlr7*vac on Np, add vac to lambda
-am4.1 <- am4
-am4.1$lambda <- "vac"
+## AM4.1: tlr7 instead of tlr7*vac on Np, no vac on lambda
+am4.1 <- list("ta" = "vac",
+            "NPs" = c("tlr7", "vac"))
 
 alt_mod(
   here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am4.1",
@@ -163,6 +162,4 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 454.3960248   484.3960248   507.2914327   520.1161795     5.0000000     0.2478875 
-
-
+# 458.9896446   486.9896446   508.3586920   521.1834387     5.0000000     0.2620964 

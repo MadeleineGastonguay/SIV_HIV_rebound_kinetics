@@ -81,9 +81,9 @@ predefined_initialvalues %>%
 
 # Final SCM model #####
 # Final model from SCM:
-# TLR7 effect on ta, beta, and p
+# TLR7 effect on ta, and beta
 alt_mod <- "final_model"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -212,17 +212,17 @@ table_predictions %>%
 dev.off()
 
 
-# AM2 #####
-# AM2 from SCM 
+# AM1 #####
+# AM1 from SCM 
 # TLR7 effect on ta and lambda
-alt_mod <- "am2"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+alt_mod <- "am1"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_results_am2 <- initial_guess_sampling(
+parameter_results_am1 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = T, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -230,11 +230,11 @@ parameter_results_am2 <- initial_guess_sampling(
   record_condition_number = TRUE, record_table = TRUE
 )
 
-for(name in names(parameter_results_am2)){
-  assign(name, parameter_results_am2[[name]])
+for(name in names(parameter_results_am1)){
+  assign(name, parameter_results_am1[[name]])
 }
 
-save(list = names(parameter_results_am2),
+save(list = names(parameter_results_am1),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
@@ -257,7 +257,7 @@ for(parameter in getPopulationParameterInformation()$name){
 dev.off()
 
 
-# There is clearly two parameter regimes: high m / low ta and low ta / high m
+# There are clearly two parameter regimes: high m / low ta and low ta / high m
 # The low ta regime has less measurement noise and smaller random effects for m
 plot_bicc_v_estimate(
   tabestimates, log10_x = F,

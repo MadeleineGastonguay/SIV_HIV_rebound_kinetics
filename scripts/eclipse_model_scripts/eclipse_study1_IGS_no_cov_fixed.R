@@ -91,8 +91,10 @@ plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name)
 
 regime1 <- tabestimates %>% 
-  filter(parameter == "m_pop", estimate <= 15, bicc > 430) %>% 
+  filter(parameter == "omega_m", estimate < 3.5) %>% 
   pull(run)
+
+length(regime1)
 
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = regime1)
 
@@ -179,13 +181,12 @@ dev.off()
 ## Second regime for avererimic animals has unrealistically high P
 table_predictions %>% 
   left_join(distinct(tabestimates, bicc, run)) %>% 
-  ggplot(aes(time, P_mode, group = factor(run), color = bicc)) + 
+  ggplot(aes(time, P_mode, group = factor(run), color = run %in% regime1)) + 
   geom_line(alpha = 0.5) + 
   facet_wrap(~id) + 
-  scale_y_log10() + 
-  color_bicc()
+  scale_y_log10() 
 
-## Big RSE for m and Np
+## Big RSE for m and Np and several random effects
 tabestimates %>% filter(bicc == min(bicc))
 
 ## Big RSE for m and some random effects

@@ -82,9 +82,9 @@ alt_mod(
   fixed = fixed
 )
 
-# OFV           AIC           BIC          BICc  chosenDegree         standardError 
-# 687.8296195   715.8296195   740.8082743   754.0035610     5.0000000 0.2936267 
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 688.4596544   716.4596544   741.4383093   754.6335959     5.0000000     0.2305609 
 
 # AM2 (identifiability): ab on lambda instead of beta
 
@@ -101,8 +101,7 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 687.6076929   715.6076929   740.5863477   753.7816344     5.0000000     0.3465158 
-
+# 690.6165387   718.6165387   743.5951936   756.7904802     5.0000000     0.2393741 
 
 # AM3: tlr7 on lambda since we inferred that in study 1
 
@@ -119,7 +118,9 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 693.0077239   721.0077239   745.9863788   759.1816655     5.0000000     0.2912992 
+# 691.645967    719.645967    744.624621    757.819908      5.000000      0.233143 
+
+
 
 # AM3: tlr7 on lambda since we inferred that in study 1
 
@@ -137,7 +138,8 @@ alt_mod(
 )
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 691.754006    721.754006    748.516851    761.712137      5.000000      0.281861 
+# 692.2264464   722.2264464   748.9892910   762.1845776     5.0000000     0.2239323 
+
 
 # BH1: ab reduces size of latent reservoir
 bh1 <- list("ta" = "ab",
@@ -152,9 +154,11 @@ alt_mod(
   fixed = fixed
 )
 
-
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 695.0289143   723.0289143   748.0075692   761.2028558     5.0000000     0.2747726 
+# 695.2197544   723.2197544   748.1984093   761.3936959     5.0000000     0.3570143 
+
+
+
 
 # BH1.1: ab reduces size of latent reservoir
 bh1.1 <- list("ta" = "ab",
@@ -170,8 +174,6 @@ alt_mod(
   fixed = fixed
 )
 
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 688.7128736   718.7128736   745.4757182   758.6710048     5.0000000     0.3149708 
 
 
 
@@ -188,8 +190,6 @@ alt_mod(
   fixed = fixed
 )
 
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 696.326367    724.326367    749.305022    762.500308      5.000000      0.315193 
 
 
 # BH2: TLR7 reduces size of latent reservoir (shown in study 1)
@@ -206,8 +206,6 @@ alt_mod(
   fixed = fixed
 )
 
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 692.8304986   722.8304986   749.5933431   762.7886297     5.0000000     0.2710956 
 
 
 # BH3: TLR7 might interact with Ab to boost immune system, which we see in study 2
@@ -223,8 +221,6 @@ alt_mod(
   fixed = fixed
 )
 
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 689.90382     719.90382     746.66666     759.86195       5.00000       0.29476 
 
 
 # BH3.1: TLR7 might interact with Ab to boost immune system, which we see in study 2
@@ -239,7 +235,4 @@ alt_mod(
   headerTypes, error_model,
   fixed = fixed
 )
-
-# OFV           AIC           BIC          BICc  chosenDegree standardError 
-# 699.0423987   727.0423987   752.0210536   765.2163402     5.0000000     0.2390052 
 
