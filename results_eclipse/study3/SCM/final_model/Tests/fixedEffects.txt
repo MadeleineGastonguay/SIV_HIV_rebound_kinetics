@@ -1,4 +1,4 @@
 parameter,statistics(sa),p-value(sa)
-beta_betas_ab_1,3.90979,9.24e-05
-beta_NPs_ab_1,4.3212,1.55e-05
-beta_m_tlr7_1,3.6744,0.000238
+beta_betas_ab_1,2.30002,0.0214
+beta_p_ab_1,2.26149,0.0237
+beta_m_tlr7_1,3.74416,0.000181

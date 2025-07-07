@@ -1,0 +1,4 @@
+residuals,statistics,p-value,test
+IWRES_vl,0.99569,0.000378941,Shapiro-Wilk
+PWRES_vl,0.9897,0.000258293,Shapiro-Wilk
+NPDE_vl,0.993904,0.0139182,Shapiro-Wilk
