@@ -58,7 +58,7 @@ omega_lambda = {value=1, method=MLE}
 omega_m = {value=1, method=MLE}
 omega_p = {value=1, method=MLE}
 omega_ta = {value=1, method=MLE}
-p_pop = {value=1, method=FIXED}
+p_pop = {value=0.9, method=FIXED}
 ta_pop = {value=8, method=MLE}
 
 <MONOLIX>

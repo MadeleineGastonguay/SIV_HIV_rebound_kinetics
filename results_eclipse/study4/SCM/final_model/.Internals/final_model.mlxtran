@@ -24,7 +24,7 @@ intTLR7ABVAC = {type=categorical, categories={'0', '1'}}
 intTLR7VAC = {type=categorical, categories={'0', '1'}}
 
 [INDIVIDUAL]
-input = {NPs_pop, omega_NPs, betas_pop, omega_betas, lambda_pop, omega_lambda, m_pop, omega_m, p_pop, omega_p, ta_pop, omega_ta, intTLR7AB, beta_lambda_intTLR7AB_1, beta_NPs_intTLR7AB_1, intTLR7VAC, beta_NPs_intTLR7VAC_1, beta_betas_intTLR7VAC_1, beta_ta_intTLR7VAC_1, beta_p_intTLR7AB_1, beta_p_intTLR7VAC_1}
+input = {NPs_pop, omega_NPs, betas_pop, omega_betas, lambda_pop, omega_lambda, m_pop, omega_m, p_pop, omega_p, ta_pop, omega_ta, intTLR7AB, beta_lambda_intTLR7AB_1, beta_NPs_intTLR7AB_1, intTLR7VAC, beta_NPs_intTLR7VAC_1, beta_ta_intTLR7VAC_1, beta_betas_intTLR7VAC_1, beta_p_intTLR7AB_1, beta_p_intTLR7VAC_1}
 
 intTLR7AB = {type=categorical, categories={'0', '1'}}
 intTLR7VAC = {type=categorical, categories={'0', '1'}}
@@ -68,7 +68,7 @@ omega_lambda = {value=1, method=MLE}
 omega_m = {value=1, method=MLE}
 omega_p = {value=1, method=MLE}
 omega_ta = {value=1, method=MLE}
-p_pop = {value=1, method=FIXED}
+p_pop = {value=0.9, method=FIXED}
 ta_pop = {value=8, method=MLE}
 
 <MONOLIX>
