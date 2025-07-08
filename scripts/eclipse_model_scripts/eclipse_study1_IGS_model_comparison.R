@@ -130,8 +130,8 @@ plot_bicc_v_estimate(
   out_folder = out_folder, project_name = project_name
 )
 
-low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 100) %>% pull(run)
-# 40 estimates in this regime
+low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 150) %>% pull(run)
+# 76 estimates in this regime
 length(low_m_regime)
 
 plot_bicc_v_estimate(
@@ -140,6 +140,8 @@ plot_bicc_v_estimate(
 )
 
 plot_vs_rses(tabestimates, out_folder, project_name)
+
+plot_vs_rses(tabestimates %>% filter(run %in% low_m_regime), out_folder, project_name, file_addendum = "_low_m")
 
 correlate_estimates(
   tabestimates %>% filter(run %in% low_m_regime), 
@@ -265,6 +267,8 @@ plot_bicc_v_estimate(
 )
 
 low_m_regime <- tabestimates %>% filter(parameter == "m_pop", estimate < 200) %>% pull(run)
+# 81 estimates in this regime
+length(low_m_regime)
 
 plot_bicc_v_estimate(
   tabestimates, log10_x = F,
@@ -300,7 +304,7 @@ compare_estimates(
 
 estimate_boxplots(tabestimates %>% filter(run %in% low_m_regime), 
                   out_folder = out_folder, project_name = project_name,
-                  file_addendum = "_low_m")
+                  file_addendum = "_low_m", remove_bicc_outliers = T)
 
 
 estimate_boxplots(tabestimates %>% filter(!run %in% low_m_regime), 
@@ -314,7 +318,7 @@ for(parameter in getPopulationParameterInformation()$name){
   print(
     parameter_plots(
       parameter,
-      remove_bicc_outliers = F, 
+      remove_bicc_outliers = T, 
       remove_estimate_outliers = F,
       NULL, tabestimates %>% filter(run %in% low_m_regime), tabiters %>% filter(run %in% low_m_regime),
       phase[low_m_regime,], initialvalues %>% filter(run %in% low_m_regime)
@@ -367,7 +371,7 @@ dev.off()
 
 # Compare results ####
 
-ams <- c("final_model","am2")
+ams <- c("final_model","am1")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL
@@ -412,18 +416,6 @@ all_tabestimates %>% select(parameter, am, estimate, best, run)  %>%
 
 # Compare model performances ####
 
-## out of 100 runs, the number of times each model was the best according to BICc
-all_tabestimates %>% 
-  distinct(run, best) %>% 
-  count(best)
-
-# best            n
-# <fct>       <int>
-#   1 final_model    52
-# 2 am2            48
-
-# The final model was the best more frequently because it landed in the immune control regime more often
-
 ## filter to low ta, low m, lower measurement error regime:
 regime1 <- all_tabestimates %>% filter(parameter == "omega_ta", estimate > 1) %>%
   mutate(t = paste(am, run, sep = ".")) %>% pull(t)
@@ -432,7 +424,16 @@ all_tabestimates %>%
   ggplot(aes(estimate, bicc, color = am, shape = paste(am, run, sep = ".") %in% regime1)) + 
   geom_point() + facet_wrap(~parameter, scales = "free_x")
 
+## out of 100 runs, the number of times each model was the best according to BICc
+all_tabestimates %>% 
+  filter(paste(am, run, sep = ".") %in% regime1) %>% 
+  distinct(run, best) %>% 
+  count(best)
 
+# best            n
+# <fct>       <int>
+#   1 final_model    43
+# 2 am1            50
 
 ## out of 100 runs, the number of times each model was less than 2 BICc from the best model
 all_tabestimates %>% distinct(run, bicc, am, best) %>% 
@@ -447,8 +448,8 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
 
 # am          equal_to_best     n
 # <fct>       <lgl>         <int>
-#   1 final_model TRUE             17
-# 2 am2         TRUE             85
+#   1 final_model TRUE             59
+# 2 am1         TRUE             78
 
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
@@ -470,7 +471,7 @@ all_tabestimates_bicc %>%
   facet_wrap(~ (paste(am, run, sep = ".") %in% regime1), scales = "free_x")
 
 
-# How frequently is the tlr7 effect on p signficant?
+# tlr8 effect on lambda is significant more often than it is on beta
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr"),
          regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
@@ -482,14 +483,7 @@ all_pvals %>%
 # scale_color_manual(values = c("black", "gray")) + 
 # theme(legend.position = "none")
 
-# tlr7 effect on p in final SCM model is never significant in the desired regime
-all_pvals %>% 
-  mutate(padj = p.adjust(p.value, method = "fdr"),
-         regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
-  left_join(distinct(., am, run, regime1) %>% add_count(am, regime1, name = "n_r1")) %>% 
-  filter(padj < 0.05) %>% 
-  count(regime1,parameter, am , n_r1)  %>% 
-  mutate(p = n/n_r1*100)
+
 
 # Look at size of random effects for each model ####
 # There's no model with clearly large random effects
@@ -519,7 +513,7 @@ all_tabestimates %>% filter(grepl("omega", parameter)) %>%
   labs(y = "Random effect estimate", x = "Model") + 
   color_bicc()
 
-
+# Final model has higher condition number than am1, especially in the immune control regime
 all_condition_numbers %>%
   mutate(regime1 = paste(am, run, sep = ".") %in% regime1) %>% 
   ggplot(aes(am, condition_number, color = regime1)) +
@@ -541,6 +535,7 @@ all_indivFit %>%
   geom_line(alpha = 0.5) + 
   facet_grid(regime1~tlr7, labeller = "label_both")
 
+# Best fit from both models in delayed rebound regime is the same
 all_indivFit %>%
   left_join(distinct(data, id, tlr7)) %>% 
   left_join(distinct(all_tabestimates, am, bicc, run)) %>% 
@@ -562,7 +557,7 @@ all_indivParams %>%
   select(-run, -bicc, -regime1) %>% 
   pivot_longer(!c(id, am, tlr7), names_to = "parameter") %>% 
   pivot_wider(names_from = am) %>% 
-  ggplot(aes(am2, final_model, color = factor(tlr7))) + 
+  ggplot(aes(am1, final_model, color = factor(tlr7))) + 
   geom_point() + 
   geom_abline() + 
   facet_wrap(~parameter, scales = "free")  + 
@@ -608,10 +603,10 @@ all_indivParams %>%
   geom_point(data = pop_param, shape = 17, size = 4, position = position_dodge(width = 0.9)) 
 
 
-# Ridiculously large RSE for m in am3
+# Ridiculously large RSE for m in final model
 all_tabestimates %>% 
   filter( paste(am, run, sep = ".") %in% regime1) %>% 
-  group_by(am) %>% filter(bicc == min(bicc)) 
+  group_by(am) %>% filter(bicc == min(bicc))  %>% view
 
 # Best BICcs are not noticeably different
 all_tabestimates %>% 
@@ -621,59 +616,13 @@ all_tabestimates %>%
 
 ## Save best model ####
 
-# Run with minimum BICc has massive RSE for m and ta... find the next best
 best_run <- all_tabestimates %>% 
-  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
+  filter(am == "am1", paste(am, run, sep = ".") %in% regime1) %>% 
   filter(bicc == min(bicc))
 
-best_run <- all_tabestimates %>% 
-  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
-  filter(bicc != min(bicc)) %>% 
-  filter(bicc == min(bicc))
+igs <- all_initialvalues %>% filter(am == "am1", run == unique(best_run$run))
 
-# P-vlaue for tlr7 effect on lambda is not signficant... 
-all_pvals %>% filter(am == "am2", run == unique(best_run$run))
-all_condition_numbers %>% filter(am == "am2", run == unique(best_run$run))
-
-temp_pval <- all_pvals %>% 
-  filter(am == "am2") %>% 
-  select(-statistics) %>% 
-  pivot_wider(names_from = parameter, values_from = p.value) %>% 
-  mutate(signif = case_when(beta_lambda_tlr7_1 < 0.05 & beta_ta_tlr7_1 < 0.05 ~ "both",
-                            beta_lambda_tlr7_1 < 0.05 & beta_ta_tlr7_1 > 0.05 ~ "lambda",
-                            beta_lambda_tlr7_1 > 0.05 & beta_ta_tlr7_1 < 0.05 ~ "ta",
-                            .default = "neither"))
-
-all_tabestimates %>% 
-  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
-  distinct(am, run, bicc) %>% 
-  left_join(all_condition_numbers) %>% 
-  left_join(temp_pval) %>% 
-  ggplot(aes(signif, bicc, color = condition_number <= 100)) + geom_beeswarm()
-
-all_tabestimates %>% 
-  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
-  left_join(all_condition_numbers) %>% 
-  left_join(temp_pval) %>% 
-  # filter(grepl("pop", parameter) | grepl("beta_", parameter)) %>% 
-  group_by(signif) %>% filter(bicc == min(bicc)) %>% 
-  ggplot(aes(signif, estimate)) + geom_col() + 
-  geom_errorbar(data = . %>% filter(rses < 1e3),
-                aes(ymin = estimate*(1-rses/100), ymax = estimate*(1+rses/100), color = rses < 100), width = 0.1) +
-  facet_wrap(~parameter, scales = "free_y") 
-
-
-# Use estimate that has best BICc when both effects are significant (also has smaller RSE)
-best_run <- all_tabestimates %>% 
-  filter(am == "am2", paste(am, run, sep = ".") %in% regime1) %>% 
-  left_join(select(temp_pval, am, run, signif)) %>% 
-  filter(signif == "both") %>% 
-  select(-signif) %>% 
-  filter(bicc == min(bicc))
-
-igs <- all_initialvalues %>% filter(am == "am2", run == unique(best_run$run))
-
-loadProject(here(out_folder, "IGS_am2.mlxtran"))
+loadProject(here(out_folder, "IGS_am1.mlxtran"))
 saveProject(here("results_eclipse", study, "best_model.mlxtran"))
 
 set_base(igs %>% rename(estimate = initialValue), fixed = fixed)
