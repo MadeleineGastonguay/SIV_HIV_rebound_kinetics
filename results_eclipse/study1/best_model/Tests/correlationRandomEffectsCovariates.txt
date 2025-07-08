@@ -1,7 +1,7 @@
 eta,covariate,statistics,p-value,test
-eta_lambda,tlr7,2.40542,0.137413,Anova
-eta_betas,tlr7,0.69662,0.414293,Anova
-eta_ta,tlr7,0.00190757,0.965619,Anova
-eta_NPs,tlr7,0.405473,0.531874,Anova
-eta_p,tlr7,0.00940239,0.923769,Anova
-eta_m,tlr7,2.21343,0.153224,Anova
+eta_lambda,tlr7,0.0917411,0.765267,Anova
+eta_betas,tlr7,1.42687,0.246976,Anova
+eta_ta,tlr7,0.000728479,0.978749,Anova
+eta_NPs,tlr7,0.907434,0.352758,Anova
+eta_p,tlr7,0.850788,0.367895,Anova
+eta_m,tlr7,0.743176,0.399396,Anova

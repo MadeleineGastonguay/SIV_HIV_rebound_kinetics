@@ -1,3 +1,3 @@
 parameter,statistics(sa),p-value(sa)
-beta_lambda_tlr7_1,2.2556,0.0241
-beta_ta_tlr7_1,2.95084,0.00317
+beta_lambda_tlr7_1,3.49259,0.000478
+beta_ta_tlr7_1,2.7383,0.00618
