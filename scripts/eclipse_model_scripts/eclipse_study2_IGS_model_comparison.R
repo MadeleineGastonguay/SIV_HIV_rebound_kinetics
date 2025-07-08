@@ -314,8 +314,8 @@ all_tabestimates %>%
 
 # best      n
 # <fct> <int>
-#   1 am1       5
-# 2 am3      45
+#   1 am1       49
+# 2 am2      1
 
 # am4 (with tlr7 effect on Np instead of tlr7*vac) is never the best model
 
@@ -332,20 +332,26 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
 
 # am    equal_to_best     n
 # <fct> <lgl>         <int>
-#   1 am1   TRUE             24
-# 2 am3   TRUE             50
+#   1 am1   TRUE             50
+# 2 am2   TRUE             23
+# 3 am4.1 TRUE              1
 
-# Am1 and am3 give equally good fit 24/50 times
+# Am1 and am2 give equally good fit 23/50 times
 
 
-## out of 50 runs, AM1 never significantly out-performed AM3
+## out of 50 runs, AM2 never significantly out-performed AM1
 all_tabestimates %>% distinct(run, bicc, am, best) %>% 
   pivot_wider(names_from = am, values_from = bicc) %>% 
-  count(am3 > (am1 + 2))
+  count(am1 > (am2 + 2))
 
-# `am3 > (am1 + 2)`     n
+# `am1 > (am2 + 2)`     n
 # <lgl>             <int>
 #   1 FALSE                50
+
+## out of 50 runs, AM4.1 never significantly out-performed AM2
+all_tabestimates %>% distinct(run, bicc, am, best) %>% 
+  pivot_wider(names_from = am, values_from = bicc) %>% 
+  count(am2 > (am4.1 + 2))
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
 
@@ -379,15 +385,28 @@ all_pvals %>%
   scale_color_bmj(name = "")
   
 
-# vaccine on lambda is significant at the 0.05 level in 74% of cases and significant at the 0.01 level in 44%
-# tlr7 on Np is significant at the 0.05 level in 84% of cases and at the 0.01 level in 0%
+# vaccine on lambda is significant at the 0.05 level in 74% of cases and significant at the 0.01 level in 62%
+# tlr7 on Np is significant at the 0.05 level in 80% of cases and at the 0.01 level in 0%
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
   filter(!parameter %in% c("beta_NPs_vac_1", "beta_NPs_intTLR7VAC_1", "beta_ta_vac_1")) %>% 
   group_by(parameter, am) %>% 
-  count(significant = padj < 0.05) %>% 
+  count(significant = padj < 0.01) %>% 
   filter(significant) 
 
+all_pvals %>% filter(am == "am1") %>% 
+  select(parameter, am, p.value, run) %>% 
+  pivot_wider(names_from = parameter, values_from = p.value) %>% 
+  ggplot(aes(beta_ta_vac_1, beta_lambda_vac_1)) + geom_point() + 
+  scale_x_log10() + scale_y_log10() + 
+  geom_hline(yintercept = 0.05) + geom_vline(xintercept = 0.05)
+
+all_tabestimates %>% 
+  filter(am == "am1") %>% 
+  select(parameter, am, estimate, run) %>% 
+  pivot_wider(names_from = parameter, values_from = estimate) %>% 
+  ggplot(aes(beta_ta_vac_1, beta_lambda_vac_1, color = ta_pop)) + geom_point()  + 
+  scale_color_distiller()
 
 # Look at size of random effects for each model ####
 
@@ -403,7 +422,7 @@ all_tabestimates %>% filter(grepl("omega", parameter)) %>%
   labs(y = "Random effect estimate (fold change)", x = "Model") + 
   color_bicc()
 
-# condition numbers tend to be bigger for am3 (with lambda), but there are still some less than 100
+# condition numbers tend to be bigger for am1 (with lambda), but there are still some less than 100
 all_condition_numbers %>%
   ggplot(aes(am, condition_number)) +
   geom_violin() + 
@@ -434,17 +453,17 @@ all_tabestimates %>%
 
 # run am     bicc
 # <dbl> <fct> <dbl>
-#   1    28 am1    518.
-# 2     2 am3    516.
-# 3    14 am4    521.
+#   1    27 am1    516.
+# 2    12 am2    518.
+# 3    50 am4.1  520
 
 
 ## Save best model ####
 
-best_run <- all_tabestimates %>% filter(am == "am1") %>% filter(bicc == min(bicc))
-igs <- all_initialvalues %>% filter(am == "am1", run == unique(best_run$run))
+best_run <- all_tabestimates %>% filter(am == "am2") %>% filter(bicc == min(bicc))
+igs <- all_initialvalues %>% filter(am == "am2", run == unique(best_run$run))
 
-loadProject(here(out_folder, "IGS_am1.mlxtran"))
+loadProject(here(out_folder, "IGS_am2.mlxtran"))
 saveProject(here("results_eclipse", study, "best_model.mlxtran"))
 
 set_base(igs %>% rename(estimate = initialValue), fixed = fixed)

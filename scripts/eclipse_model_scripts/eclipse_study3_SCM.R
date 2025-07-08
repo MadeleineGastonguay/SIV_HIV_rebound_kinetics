@@ -174,6 +174,8 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 689.5344600   719.5344600   746.2973046   759.4925912     5.0000000     0.2967223 
 
 
 
@@ -190,7 +192,8 @@ alt_mod(
   fixed = fixed
 )
 
-
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 697.0291410   725.0291410   750.0077959   763.2030825     5.0000000     0.3202687 
 
 # BH2: TLR7 reduces size of latent reservoir (shown in study 1)
 bh2.1 <- list("betas" = "ab",
@@ -206,6 +209,8 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 687.8372354   717.8372354   744.6000799   757.7953666     5.0000000     0.2833723 
 
 
 # BH3: TLR7 might interact with Ab to boost immune system, which we see in study 2
@@ -221,7 +226,8 @@ alt_mod(
   fixed = fixed
 )
 
-
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 688.9680914   718.9680914   745.7309359   758.9262226     5.0000000     0.2819871 
 
 # BH3.1: TLR7 might interact with Ab to boost immune system, which we see in study 2
 bh3.1 <- list("betas" = "ab",
@@ -236,3 +242,5 @@ alt_mod(
   fixed = fixed
 )
 
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 701.4744149   729.4744149   754.4530698   767.6483564     5.0000000     0.3039302 
