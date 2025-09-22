@@ -49,7 +49,7 @@ igs <- read_csv(here(out_folder, "IGS_no_cov_fixed_param", "best_estimates.csv")
 
 set_base(igs, fixed = fixed)
 
-saveProject(here(out_folder, project_name))
+if(!file.exists(here(out_folder, project_name))) saveProject(here(out_folder, project_name))
 
 # Run SCM
 relationships <- NULL # nothing locked in
@@ -65,6 +65,8 @@ out <- plot_model_building(mb)
 
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
        out$plot, width = 10, height = 7)
+
+write_csv(out$summary, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_summary.csv"))
 
 # The fourth covariate does not significantly improve BICc
 out$summary %>% #group_by(n_covar) %>% filter(BICc == min(BICc)) %>% 
