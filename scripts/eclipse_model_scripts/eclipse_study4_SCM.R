@@ -49,7 +49,7 @@ igs <- read_csv(here(out_folder, "IGS_no_cov_fixed_param", "best_estimates.csv")
 
 set_base(igs, fixed = fixed)
 
-saveProject(here(out_folder, project_name))
+if(!file.exists(here(out_folder, project_name))) saveProject(here(out_folder, project_name))
 
 # Run SCM
 relationships <- NULL # nothing locked in
