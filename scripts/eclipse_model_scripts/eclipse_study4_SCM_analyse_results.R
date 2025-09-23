@@ -64,8 +64,8 @@ SCM_summary_figure_study4 <- SCM_summary %>%
          label = factor(label, levels = c("","lambda", "betas", "ta", "m", "p", "NPs"),
                         labels = c("","lambda", "beta", "t['a']", "m", "p", "N['p']"))) %>%
   mutate(param = fct_rev(param),
-         # treatment = factor(treatment, levels = rev(c("tlr7", "vac", "intTLR7VAC")),
-         #                    labels = rev(c("TLR7", "Vaccine", "TLR7 * Vaccine")))
+         treatment = factor(treatment, levels = rev(c("intTLR7VAC", "intTLR7AB", "intTLR7ABVAC")),
+                            labels = rev(c("TLR7 + Vaccine", "TLR7 + Antibody", "TLR7 + Antibody + Vaccine")))
   ) %>%
   ggplot(aes(BICc - threshold, treatment, fill = param)) +
   geom_rect(data = ~filter(., BICc == min(BICc)),
@@ -117,10 +117,28 @@ stepwise_preds %>%
   left_join(distinct(data, id, ab, vac)) %>% 
   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
   ggplot(aes(time, popPred, group = interaction(id, model), color = treatment_effect)) + 
-  geom_point( aes(time, vl), alpha = 0.5, color = "black") +
-  geom_line() + 
+  geom_point(data = ~filter(.x, model == "001"), aes(time, vl), alpha = 0.5, color = "black") +
+  geom_line(linewidth = 1) + 
   facet_wrap(ab ~ vac, labeller = "label_both") + 
-  scale_color_viridis_d( begin = 0.2, end = 1) 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Treatment effect added")
+
+stepwise_preds %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  filter(model != "001") %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  arrange(ab, vac) %>% 
+  mutate(Treatment = fct_inorder(case_when(ab == 1 & vac == 1 ~ "TLR7 + Ab + Vac", 
+                                           ab == 1 & vac == 0 ~ "TLR7 + Ab",
+                                           ab == 0 & vac == 1 ~ "TLR7 + Vac",
+                                           ab == 0 & vac == 0 ~ "Control"))) %>% 
+  ggplot(aes(time, popPred, group = interaction(id, model), color = treatment_effect)) + 
+  geom_point(aes(time, vl), alpha = 0.5, color = "black") +
+  geom_line(linewidth = 1) + 
+  facet_grid(treatment_effect ~ Treatment) + 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Treatment effect added")
 
 stepwise_preds %>% 
   left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
@@ -199,8 +217,29 @@ individual_trajectories %>% rename(Treatment = treatment) %>%
   geom_line(linewidth = 1, alpha = 0.5) + 
   facet_wrap(~id, labeller = "label_both") + 
   scale_color_viridis_d( begin = 0.2, end = 1) +
-  coord_cartesian(ylim = c(-1, 6), xlim = c(0,168))
+  coord_cartesian(ylim = c(-1, 6), xlim = c(0,168)) + 
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Treatment effect added",
+       fill = "Treatment group") + 
+  scale_fill_manual(values = colors, labels= c("Control", "TLR7+Antibody", "TLR7+Vaccine", "TLR7+Antibody+Vaccine"))
 
+diff_id <- c(7132, 7133, 7137, 7138, 7142, 7145, 7147, 7149, 7152)
+
+individual_trajectories %>% rename(Treatment = treatment) %>%
+  filter(id %in% diff_id) %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
+  ggplot(aes(time, V/log(10), group = model, color = treatment_effect)) + 
+  geom_hline(yintercept = 1.1, lty = "dashed") +
+  geom_point(data = data %>% filter(id %in% diff_id), aes(time, vl, fill = interaction(ab, vac)), shape = 21, inherit.aes = F) +
+  geom_line(linewidth = 1) + 
+  facet_wrap(~id, labeller = "label_both") + 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  coord_cartesian(ylim = c(-1, 6), xlim = c(0,168)) + 
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Treatment effect added",
+       fill = "Treatment group") + 
+  scale_fill_manual(values = colors, labels= c("TLR7+Antibody", "TLR7+Antibody+Vaccine"))
 
 get_group_parameters <- function(popparams, effects = c("tlr7", "vac", "ab")){
   # popparams <- as.data.frame(popparams)
@@ -297,10 +336,117 @@ for(i in 1:nrow(temp_df2)){
 
 stepwise_preds %>% 
   filter(id != 7122) %>% 
-  mutate(error = ifelse(vl == 1.04 & indivPred_mean < 1.04, 0, vl-indivPred_mean)) %>% 
-  ggplot(aes(time, error, color = model)) +
-  geom_hline(yintercept = 0) +
-  geom_line() + 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
+  mutate(error = ifelse(vl <= 1.1 & indivPred_mean <= 1.1, 0, indivPred_mean-vl)) %>% 
+  ggplot(aes(time, error, color = treatment_effect)) +
+  geom_hline(aes(yintercept = 0)) +
+  geom_line(linewidth = 1, alpha = 0.5) + 
   facet_wrap(~id) +
-  scale_color_viridis_d( begin = 0.2, end = 1) 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  labs(y = "Difference between observed and predicted viral load", color = "Treatment effect added")
 
+stepwise_preds %>% 
+  filter(id %in% diff_id) %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
+  mutate(error = ifelse(vl <= 1.1 & indivPred_mean <= 1.1, 0, indivPred_mean-vl)) %>% 
+  ggplot(aes(time, error, color = treatment_effect)) +
+  geom_hline(aes(yintercept = 0)) +
+  geom_line(linewidth = 1) + 
+  facet_wrap(~id) +
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  labs(y = "Difference between observed and predicted viral load", color = "Treatment effect added")
+
+## How do random effects change?
+
+stepwise_popParam %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>%  
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  filter(grepl("omega", parameter)) %>% 
+  ggplot(aes(factor(n_covar), value, fill = treatment_effect)) + 
+  geom_col() + 
+  facet_wrap(~parameter) + 
+  scale_fill_viridis_d(begin = 0.2, end = 1) + 
+  labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added")
+
+# how do treatment effects change?
+stepwise_popParam %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>%  
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  filter(grepl("beta_", parameter)) %>% 
+  mutate(parameter = fct_inorder(parameter)) %>% 
+  ggplot(aes(factor(n_covar), value, fill = treatment_effect)) + 
+  geom_hline(yintercept = 0) +
+  geom_col() + 
+  facet_wrap(~parameter, scales = "free_y", nrow = 2) + 
+  scale_fill_viridis_d(begin = 0.2, end = 1) + 
+  labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added")
+
+# how do population parameters change?
+stepwise_popParam %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>%  
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  filter(grepl("pop", parameter)) %>% 
+  mutate(parameter = fct_inorder(parameter)) %>% 
+  ggplot(aes(factor(n_covar), value, fill = treatment_effect)) + 
+  geom_hline(yintercept = 0) +
+  geom_col() + 
+  facet_wrap(~parameter, scales = "free_y", nrow = 2) + 
+  scale_fill_viridis_d(begin = 0.2, end = 1) + 
+  labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added")
+
+## Compared to prior model, how does next model change?
+
+compare_df <- merge(
+  stepwise_preds %>% 
+    select(id, model, time, popPred) %>% 
+    filter(model != "001") %>% 
+    left_join(mutate(included_effects, model = sprintf("%03d", mod))),
+  stepwise_preds %>% 
+    select(id, model, time, popPred_ref = popPred) %>% 
+    filter(model != "103") %>% 
+    left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+    mutate(n_covar = n_covar + 1),
+  by = c("n_covar", "id", "time")
+  ) 
+
+compare_df %>%
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
+  ggplot(aes(time, popPred-popPred_ref, color = treatment_effect, group = interaction(id, model.x))) + 
+  geom_hline(yintercept = 0, lty = "dashed") + 
+  geom_line(linewidth = 1) + 
+  facet_wrap(ab~vac, labeller = "label_both") + 
+  scale_color_viridis_d(begin = 0.2, end = 1) + 
+  labs(x = "Time", y = "Change from model at previous step", color = "Treatment effect added")
+
+compare_df %>%
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
+  arrange(ab, vac) %>% 
+  mutate(Treatment = fct_inorder(case_when(ab == 1 & vac == 1 ~ "TLR7 + Ab + Vac", 
+                                           ab == 1 & vac == 0 ~ "TLR7 + Ab",
+                                           ab == 0 & vac == 1 ~ "TLR7 + Vac",
+                                           ab == 0 & vac == 0 ~ "Control"))) %>% 
+  ggplot(aes(time, popPred-popPred_ref, color = treatment_effect, group = interaction(id, model.x))) + 
+  geom_hline(yintercept = 0, lty = "dashed") + 
+  geom_line(linewidth = 1) + 
+  facet_grid(treatment_effect~Treatment) + 
+  scale_color_viridis_d(begin = 0.2, end = 1) + 
+  labs(x = "Time", y = "Change from model at previous step", color = "Treatment effect added")
+
+compare_df %>%
+  filter(n_covar <=4 ) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
+  ggplot(aes(time, popPred-popPred_ref, color = treatment_effect, group = interaction(id, model.x))) + 
+  geom_hline(yintercept = 0, lty = "dashed") + 
+  geom_line(linewidth = 1) + 
+  facet_wrap(ab~vac, labeller = "label_both") + 
+  scale_color_viridis_d(begin = 0.2, end = 1) + 
+  labs(x = "Time", y = "Change from model at previous step", color = "Treatment effect added")
