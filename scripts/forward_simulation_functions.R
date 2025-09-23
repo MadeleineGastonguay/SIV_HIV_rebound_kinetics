@@ -30,9 +30,6 @@ ctl_nonlytic_identifiable_virus_delay <- function(t, state, parameters){
       Tar_lag <- lagvalue(t - tauQ, 1)
       V_lag <- lagvalue(t - tauQ, 3)  
     }
-    if(t %in% 0:5){
-      print(paste("t", t, "T", Tar, "Tar_lag", Tar_lag, "V", V, "V_lag", V_lag))
-    }
     
     d_Tar <- (t >= t_go) * (L - Tar*B*V - Tar*dTar) #Uninfected cells
     d_I <- (t >= t_go) * (a + B * Tar_lag * V_lag * exp(-dTar * tauQ) / (1 + E / N_E) - I*dI) #Infected cells
@@ -181,12 +178,18 @@ sim_traj_final <- function(parameters, return_full, delay = F){
   
   
   if(is.na(t_go)){
-    t_go <- 0
+    # t_go <- 0
     print("t_go NAN!")
     print(c("pars", parameters))
     print(c("p surv", p_surv))
     print(c("inner log", w_weight * p_surv / (t_a * dI) * (exp(r*t_a/p_surv) - 1)))
     print(c("R0", R_0))
+    if(!return_full){
+      return(data.frame(peak = NA, final = NA, t_reb=NA, p_surv=p_surv, reactivation_time = t_a / p_surv))
+    }else{
+      return(list(data.frame(r = r, V_ART = V_ART, peak = NA, final = NA, t_reb=NA, p_surv=p_surv, reactivation_time = t_a / p_surv), 
+                  data.frame(V = NA, Tar = NA,  I = NA,  P = NA, E = NA, post_activated = NA,  pre_activated = NA, time = NA)))
+    }
   }
   if(t_go == -Inf){
     t_go <- 0
@@ -215,10 +218,10 @@ sim_traj_final <- function(parameters, return_full, delay = F){
   
   names(y_start) <- c("Tar", "I", "V", "P", "E") 
   
-  # pars_adjusted <- c(parameters, log(a), t_go)
-  # names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a_log", "t_go")
-  pars_adjusted <- c(parameters, (a), t_go)
-  names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a", "t_go")
+  pars_adjusted <- c(parameters, log(a), t_go)
+  names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a_log", "t_go")
+  # pars_adjusted <- c(parameters, (a), t_go)
+  # names(pars_adjusted) <- c("L", "B", "t_a", "m", "p", "N_P", "a", "t_go")
   
   
   if(sum(is.nan(y_start)) > 0){
@@ -232,8 +235,8 @@ sim_traj_final <- function(parameters, return_full, delay = F){
     out <- ode(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls, parms = pars_adjusted,  atol=0)
   }else{
     times_seq <- seq(from=0, to=365, by=.1)
-    # out <- dede(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls_delay, parms = pars_adjusted,  atol=0)
-    out <- dede(y_start, times = times_seq, func = ctl_nonlytic_identifiable_virus_delay, parms = pars_adjusted,  atol=0)
+    out <- dede(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls_delay, parms = pars_adjusted,  atol=0)
+    # out <- dede(y_start, times = times_seq, func = ctl_nonlytic_identifiable_virus_delay, parms = pars_adjusted,  atol=0)
   }
   
   

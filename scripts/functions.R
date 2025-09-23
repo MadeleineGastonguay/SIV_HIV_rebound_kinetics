@@ -13,6 +13,9 @@ require(GGally)
 require(ggpubr)
 require(ggpmisc)
 
+# Define colors for plotting
+colors <- c("0.0" = "black", "1.0" = "#00A3D3", "0.1" = "#FFD871", "1.1" ="#46C029")
+
 # Define project settings and scenario tasks ####
 
 set_project_settings <- function(){
@@ -656,7 +659,7 @@ plot_bicc_v_estimate <- function(tabestimates, out_folder = "", project_name = "
                                  remove_bicc_outliers = FALSE, remove_estimate_outliers = FALSE, log10_x = TRUE, 
                                  exclude_treatment_effects = FALSE, ylim = NULL,
                                  file_addendum = "",  parameter = NULL, BICc_threshold = NULL,
-                                 color = "BICc", color_label = NULL){
+                                 color = "BICc", color_label = NULL, point_size = 1, add_best = TRUE){
   
   filtered_results <- filter_results(tabestimates, remove_estimate_outliers, remove_bicc_outliers)
   
@@ -682,18 +685,19 @@ plot_bicc_v_estimate <- function(tabestimates, out_folder = "", project_name = "
     tabestimates <- tabestimates %>% mutate(color = run %in% color)
   }
   
+  if(!is.factor(tabestimates$param)) tabestimates <- tabestimates %>% mutate(param = factor(param, levels = popparams$name))
   
   if(narrow){
     estimates_vs_bicc <- tabestimates %>%
-      mutate(param = factor(param, levels = popparams$name)) %>%
-      ggplot(aes(estimate, bicc, shape = bicc == min(bicc), fill = color)) +
-      geom_point(size = 2, alpha = 0.75) + 
-      geom_point(data = . %>% filter(bicc == min(bicc)), size = 2)
+      ggplot(aes(estimate, bicc, fill = color)) +
+      geom_point(alpha = 0.75, size = point_size, shape = 21) 
+      
+      if(add_best) estimates_vs_bicc <- estimates_vs_bicc + geom_point(data = . %>% filter(bicc == min(bicc)), size = point_size+1, shape = 24)
   }else{
     estimates_vs_bicc <- tabestimates %>%
-      mutate(param = factor(param, levels = popparams$name)) %>%
+      # mutate(param = factor(param, levels = popparams$name)) %>%
       ggplot(aes(estimate, bicc,  fill = color)) +
-      geom_point(size = 2, alpha = 0.75, shape = 21) +
+      geom_point(alpha = 0.75, shape = 21, size =  point_size + 1) +
       geom_hline(yintercept = BICc_threshold, lty = "dashed", alpha = 0.5) + 
       labs(caption = paste0("Dashed line indicates BICc below which fall the most probable models\n", caption))
   }
@@ -701,8 +705,8 @@ plot_bicc_v_estimate <- function(tabestimates, out_folder = "", project_name = "
     facet_wrap(~param, scales = "free_x") + 
     labs(x = "Final estimate", y = "BICc", shape = "Best fit", 
          title = "Comparing BIC and parameter estimates",
-         caption = caption) + 
-    scale_shape_manual(values = c(21, 24))
+         caption = caption) 
+    # scale_shape_manual(values = c(21, 24))
   
   if(any(color == "BICc")){
     estimates_vs_bicc <- estimates_vs_bicc + scale_fill_viridis_c(direction = -1) + labs(fill = "BICc")
@@ -717,7 +721,8 @@ plot_bicc_v_estimate <- function(tabestimates, out_folder = "", project_name = "
   if(!is.null(ylim)) estimates_vs_bicc <- estimates_vs_bicc + ylim(ylim) + labs(caption = paste0(caption, "\nBICc greater than ", max(ylim), " removed"))
   if(!is.null(parameter)){
     if(!grepl("beta_", parameter) & log10_x) estimates_vs_bicc <- estimates_vs_bicc + scale_x_log10()
-  }else if(log10_x & exclude_treatment_effects){ 
+  # }else if(log10_x & exclude_treatment_effects){ 
+  }else if(log10_x){ 
     estimates_vs_bicc <- estimates_vs_bicc + scale_x_log10()
   }
   
@@ -922,7 +927,8 @@ cor_iv_estimates <- function(tabestimates, initialvalues, out_folder, project_na
 # Plot parameters against eachother
 
 correlate_estimates <- function(tabestimates, method = "spearman", out_folder = "", project_name = "",
-                                remove_estimate_outliers = FALSE, remove_bicc_outliers = FALSE,  file_addendum = ""){
+                                remove_estimate_outliers = FALSE, remove_bicc_outliers = FALSE,  file_addendum = "",
+                                label_threshold = 0.5, text_color = "black"){
   
   # Filter tabestimates to remove estimate outliers and/or BICc outliers
   filtered_results <- filter_results(tabestimates, remove_estimate_outliers, remove_bicc_outliers)
@@ -945,8 +951,8 @@ correlate_estimates <- function(tabestimates, method = "spearman", out_folder = 
            parameter1 = factor(parameter1, levels = popparams$name)) %>%
     ggplot(aes(parameter1, parameter2, fill = value)) + 
     geom_tile() + 
-    geom_text(data = . %>% filter(value > 0.5 | value < -0.5),
-              aes(label = round(value, 2))) +
+    geom_text(data = . %>% filter(abs(value) >= label_threshold, parameter1 != parameter2),
+              aes(label = round(value, 2)), color = text_color) +
     scale_fill_gradient2(limits = c(-1,1)) + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           axis.title = element_blank()) + 
@@ -1490,6 +1496,60 @@ plot_parameter_ranges <- function(initialValue_ranges, log10_tabestimates, tabes
   
 }
 
+plot_parameter_ranges_v2 <- function(initialValue_ranges, log10_tabestimates, tabestimates = NULL, p_threshold = NULL, bicc_cutoff = NULL){
+  iv_range <- initialValue_ranges %>% t() %>% as.data.frame %>% set_names(c("min", "max")) %>% rownames_to_column("parameter")
+  iv_range <- iv_range %>% mutate(min = ifelse(parameter == "NPs", min*1e5, min), max = ifelse(parameter == "NPs", max*1e5, max))
+  log10_tabestimates <- log10_tabestimates %>% mutate(estimate = ifelse(parameter == "NPs_pop", estimate*1e5, estimate)) 
+  log10_range <- log10_tabestimates %>% group_by(parameter) %>%  summarise(min = min(estimate), max = max(estimate)) %>% ungroup
+  narrow_iv_range <- get_narrow_ranges(log10_tabestimates, p_threshold, bicc_cutoff) %>% select(-best)
+  tabestimates_cut <- calculate_BICw(tabestimates) %>% filter(cumprob <= p_threshold) %>% pull(run)
+  df <- rbind(
+    iv_range %>% mutate(step = "1", range = "Initial Guess", parameter = paste(parameter, "pop", sep = "_")),
+    log10_range %>% mutate(step = "2", range = "Estimate Range"),
+    narrow_iv_range %>% mutate(step = "2", range = "Global Minimum")
+  ) %>% 
+    filter(grepl("pop", parameter))
+  if(!is.null(tabestimates)){
+    tabestimates <- tabestimates  %>% mutate(estimate = ifelse(parameter == "NPs_pop", estimate*1e5, estimate))
+    narrow_range <- tabestimates %>% group_by(parameter) %>% summarise(min = min(estimate), max = max(estimate)) %>% ungroup
+    best_range <- tabestimates %>% filter(run %in% tabestimates_cut) %>%
+      group_by(parameter) %>% summarise(min = min(estimate), max = max(estimate)) %>% ungroup 
+      
+    best <- tabestimates %>% filter(bicc == min(bicc), grepl("pop", parameter)) %>% select(parameter, estimate) %>% 
+      mutate(parameter = factor(parameter, levels = c("lambda_pop", "betas_pop", "ta_pop", "m_pop", "p_pop", "NPs_pop"),
+                                labels = c("lambda['pop']", "beta['pop']~' (x'~10^-7~')'", "t['a, pop']", "m['pop']", "p['pop']", "N['p, pop']")))
+    df <- rbind(df, 
+                narrow_range %>% mutate(step = "3", range = "Estimate Range"),
+                best_range %>% mutate(step = "3", range = "Best Candidates")
+    ) %>% 
+      filter(grepl("pop", parameter))
+  }
+  
+  plot <- df %>% mutate(range = factor(range, levels = c("Initial Guess", "Estimate Range", "Global Minimum", "Best Candidates")),
+                        step = factor(step, levels = rev(c("1", "2", "3")), labels =rev( c("Wide range of\ninitial conditions", "IGS from wide range", "IGS from 'good' range"))),
+                        parameter = factor(parameter, levels = c("lambda_pop", "betas_pop", "ta_pop", "m_pop", "p_pop", "NPs_pop"),
+                                           labels = c("lambda['pop']", "beta['pop']~' (x'~10^-7~')'", "t['a, pop']", "m['pop']", "p['pop']", "N['p, pop']"))) %>% 
+    # ggplot(aes(x= step, ymin = log10(min), ymax = log10(max), color = range)) + 
+    ggplot(aes(y= step, xmin = log10(min), xmax = log10(max), color = range)) + 
+    geom_linerange(linewidth = 2) + 
+    # geom_linerange(data = filter(df, space == "Narrow Range"), linewidth = 2) + 
+    facet_wrap(~parameter, scales = "free_x", nrow = 1, labeller = "label_parsed", strip.position = "bottom") + 
+    # scale_y_log10() + 
+    scale_color_manual(values = c("gray39", "gray", "darkred", "darkgreen")) + 
+    scale_x_continuous(labels = scales::label_math(10^.x))
+  
+  # if(!is.null(tabestimates)){
+  #   plot <- plot + 
+  #     geom_point(data = best, aes(y = "IGS from 'good' range", x = log10(estimate)), 
+  #                color = "black", inherit.aes = F, size = 2) +
+  #     geom_text(data = best, aes(y = "IGS from 'good' range", x = log10(estimate), label = signif(estimate, 2)), 
+  #               color = "black", inherit.aes = F, fontface = 2, vjust = 0, hjust = 1.1)
+  # }
+  # 
+  plot  + theme(strip.placement = "outside", axis.title = element_blank())
+  
+}
+
 # Plotting RSES ####
 plot_vs_rses <- function(tabestimates, out_folder = "", project_name = "",  y = "bicc", file_addendum = NULL){
   names(tabestimates)[names(tabestimates) == y] <- "y"
@@ -1518,6 +1578,6 @@ plot_vs_rses <- function(tabestimates, out_folder = "", project_name = "",  y = 
 
 # Shortcut functions ####
 # functions to scale bicc color
-color_bicc <- function() scale_color_viridis_c(direction = -1)
-fill_bicc <- function() scale_fill_viridis_c(direction = -1)
+color_bicc <- function(...) scale_color_viridis_c("BICc", direction = -1, ...)
+fill_bicc <- function(...) scale_fill_viridis_c("BICc", direction = -1, ...)
 
