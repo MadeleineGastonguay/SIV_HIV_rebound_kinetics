@@ -372,7 +372,7 @@ trajectory_record_final <- human_trials[[3]]
 parameter_df <- human_trials[[4]]
 
 save(trajectory_record_final, final_df_data, quad_df, cov_vec_list, parameter_df,
-     file = here("results_eclipse", "simulations", "human_simulations_all_scenarios_sampled_omega_09_03.RData"))
+     file = here("results_eclipse", "simulations", "human_simulations_all_scenarios_sampled_omega_09_26.RData"))
 
 
 I1 <- fixed$I1_monkey
@@ -381,17 +381,17 @@ dI <- fixed$dI_macaque
 whitney_SIV_trials <- virtual_trial("whitney_SIV", num_its, cov_vec_list)
 
 save(whitney_SIV_trials,
-     file = here("results_eclipse", "simulations", "study1_SIV_09_03.RData"))
+     file = here("results_eclipse", "simulations", "study1_SIV_09_26.RData"))
 
 barouch_SIV_trials <- virtual_trial("barouch_SIV", num_its, cov_vec_list[-2])
 
 save(barouch_SIV_trials,
-     file = here("results_eclipse", "simulations", "study2_SIV_09_03.RData"))
+     file = here("results_eclipse", "simulations", "study2_SIV_09_26.RData"))
 
 barouch_SHV_trials <- virtual_trial("barouch_SHIV", num_its, cov_vec_list[-c(2,3)])
 
 save(barouch_SHV_trials,
-     file = here("results_eclipse", "simulations", "study3_SHIV_09_03.RData"))
+     file = here("results_eclipse", "simulations", "study3_SHIV_09_26.RData"))
 
 ######### HUMAN MAIN FIGURE ##############
 
@@ -403,7 +403,7 @@ m2 <- ggplot(final_df_data %>% filter(name %in% treatment_subset), aes(x = peak,
   #geom_point(alpha = 0.4, shape = 21, colour = "black", fill = NA, stroke = .15, size=1) +
   
   geom_point(data=filter(final_df_data %>% filter(name %in% treatment_subset), t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
-  geom_point(data=filter(final_df_data %>% filter(name %in% treatment_subset), t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb+washout_time))) + 
+  geom_point(data=filter(final_df_data %>% filter(name %in% treatment_subset), t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + 
   scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, 
                        trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), 
                        labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
@@ -463,7 +463,7 @@ m2 <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_wrap(~ name_f) +
   #geom_point(alpha = 0.4, shape = 21, colour = "black", fill = NA, stroke = .15, size=1) +
   
   geom_point(data=filter(final_df_data, t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
-  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb+washout_time))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
+  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
   theme_bw() +  
   xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 6.5), ylim=c(-2.5, 6.5)) + 
   geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
@@ -523,7 +523,7 @@ m2_siv <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_grid(study~ na
   #geom_point(alpha = 0.4, shape = 21, colour = "black", fill = NA, stroke = .15, size=1) +
   
   geom_point(data=filter(final_df_data, t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
-  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb+washout_time))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
+  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
   theme_bw() +  
   xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 6.5), ylim=c(-2.5, 6.5)) + 
   geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
@@ -577,7 +577,7 @@ m2_shiv <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_wrap(~ name_f
   #geom_point(alpha = 0.4, shape = 21, colour = "black", fill = NA, stroke = .15, size=1) +
   
   geom_point(data=filter(final_df_data, t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
-  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb+washout_time))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
+  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
   theme_bw() +  
   xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 6.5), ylim=c(-2.5, 6.5)) + 
   geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
