@@ -147,7 +147,8 @@ sim_traj_final <- function(parameters, return_full, delay = F){
     P_ART <- max_immune_level_P
     print("USING MAX IMMUNE LEVEL FOR P")
   }
-  if(P_ART > max_immune_level_P){
+  # if(P_ART > max_immune_level_P){
+  if(dP<p*(1-f)*V_ART/(V_ART+N_P)){
     P_ART <- max_immune_level_P
     print("USING MAX IMMUNE LEVEL FOR P")
   }
@@ -244,6 +245,7 @@ sim_traj_final <- function(parameters, return_full, delay = F){
   }else{
     times_seq <- seq(from=0, to=365, by=.1)
     y_start <- y_start[names(y_start) != "V"]
+    
     out <- dede(log(y_start), times = times_seq, func = ctl_nonlytic_identifiable_virus_ls_delay, parms = pars_adjusted) 
     out <- cbind(out, V = log(k/c) + out[,"I"])
     out <- out[,c("time", "Tar", "I", "V", "P", "E")]
