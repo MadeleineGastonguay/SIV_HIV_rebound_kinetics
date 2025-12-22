@@ -1405,14 +1405,17 @@ plot_model_building <- function(mb,  ...){
     )
   
   
+  max_covar <- max(mb_summary$n_covar)
   mb_summary_no_back_elim <- mb_summary %>% 
     mutate(id = 1:nrow(.), t = c(0,diff(n_covar))) %>% 
-    filter(t >= 0) 
+    # filter(t >= 0) 
+    filter(id <= max(id[n_covar == max_covar]))
   
-  best_mod_covar <- filter(mb_summary_no_back_elim, BICc == min(BICc))$n_covar
+  
+  # best_mod_covar <- filter(mb_summary_no_back_elim, BICc == min(BICc))$n_covar
   
   mb_summary_no_back_elim <- mb_summary_no_back_elim %>% 
-    filter(id <= max(id[n_covar == best_mod_covar])) %>% 
+    # filter(id <= max(id[n_covar == best_mod_covar])) %>% 
     select(-id, -t)
   
   thresholds <- mb_summary_no_back_elim %>% 
