@@ -120,6 +120,42 @@ ctl_nonlytic_identifiable_virus_ls_eclipse <- function(t, state, parameters){
   })
 }
 
+calculate_ART <- function(parameters){
+  
+  
+  log_rebound_threshold <- log(50)
+  
+  max_immune_level_P <- 1000 * N_E
+  tauQ <- 1 # delay for delay model
+  
+  L <- parameters[1]
+  B <- parameters[2]
+  t_a <- parameters[3]
+  m <- parameters[4]
+  p <- parameters[5]
+  N_P <- parameters[6]
+  
+  
+  #ART time-averaged parameters
+  T_ART <- L/dTar
+  I_ART <- I1 / (t_a * dI)
+  V_ART <- I1 / (t_a * dI) * k / c
+  P_ART <- m / (dP - p * (1 - f) * V_ART / (V_ART + N_P))
+  # if(P_ART < 0){
+  #   P_ART <- max_immune_level_P
+  #   print("USING MAX IMMUNE LEVEL FOR P")
+  # }
+  # # if(P_ART > max_immune_level_P){
+  # if(dP<p*(1-f)*V_ART/(V_ART+N_P)){
+  #   P_ART <- max_immune_level_P
+  #   print("USING MAX IMMUNE LEVEL FOR P")
+  # }
+  
+  E_ART <- p*f*P_ART * V_ART / (dE * (V_ART + N_P))
+  
+  return(data.frame(T_ART = T_ART, I_ART = I_ART, V_ART = V_ART, P_ART = P_ART, E_ART = E_ART, 
+                    P_max = dP<p*(1-f)*V_ART/(V_ART+N_P), P_ART_denom = p*(1-f)*V_ART/(V_ART+N_P)))
+}
 
 # Simulation function ####
 sim_traj_final <- function(parameters, return_full, delay = F){
@@ -162,7 +198,7 @@ sim_traj_final <- function(parameters, return_full, delay = F){
   if(!delay){
     r <- max(0, (-(c + dI) + sqrt((c - dI)^2 + 4 * c * dI * R_0))/2)
   }else{
-    r <- 1/tauQ*lambertW0(R_0*tauQ*dI*c/(dI + c)*exp(tauQ*dI*c/(dI + c))) - dI*c/(dI + c)
+    r <- 1/tauQ*lambertW0((R_0*tauQ*dI*c/(dI + c)*exp(tauQ*dI*c/(dI + c)))) - dI*c/(dI + c)
   }
   if(R_0 > 1){
     p_surv <- (lambertW0(-R_0 * exp(-R_0)) + R_0) / (R_0 + rho - 1) 

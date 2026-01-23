@@ -18,12 +18,12 @@ colors <- c("0.0" = "black", "1.0" = "#00A3D3", "0.1" = "#FFD871", "1.1" ="#46C0
 
 # Define project settings and scenario tasks ####
 
-set_project_settings <- function(){
+set_project_settings <- function(linearize = FALSE){
   # Set scenario for Monolix
   scenario <- getScenario()
   scenario$tasks["standardErrorEstimation"] <- TRUE
   scenario$tasks["logLikelihoodEstimation"] <- TRUE
-  scenario$linearization <- FALSE
+  scenario$linearization <- linearize
   setScenario(scenario)
   
   # Set Parameter Estimation Settings
@@ -43,7 +43,8 @@ set_project_settings <- function(){
 create_project <- function(model_file, data_file, 
                            headerTypes, error_model, 
                            exclude_random_effects, treatment_effects = NULL, 
-                           normal_dist = NULL, fixed = NULL){
+                           normal_dist = NULL, fixed = NULL,
+                           linearize = FALSE){
   
   # Create a new project
   newProject(modelFile = model_file,
@@ -87,7 +88,7 @@ create_project <- function(model_file, data_file,
   
   print(getIndividualParameterModel())
   
-  set_project_settings()
+  set_project_settings(linearize)
   
 }
 
@@ -596,10 +597,11 @@ alt_mod <- function(out_folder, project_name,
                     model_file, data_file, 
                     initialvalues, treatment_effects, 
                     headerTypes, error_model, 
-                    exclude_random_effects = NULL, normal_dist = NULL, fixed = NULL){
+                    exclude_random_effects = NULL, normal_dist = NULL, 
+                    fixed = NULL, linearize = FALSE){
   
   
-  create_project(model_file, data_file, headerTypes, error_model, exclude_random_effects, treatment_effects, normal_dist, fixed)
+  create_project(model_file, data_file, headerTypes, error_model, exclude_random_effects, treatment_effects, normal_dist, fixed, linearize)
   
   set_base(initialvalues, fixed = fixed)
   
