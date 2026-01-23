@@ -11,7 +11,8 @@ theme_set(theme_bw() +
                   panel.border = element_rect(colour = "black"), aspect.ratio=1) )
 
 # Define colors for plotting
-colors <- c("Control" = "black", "TLR7 + Antibody" = "#00A3D3", "TLR7 + Vaccine" = "#FFD871", "TLR7 + Antibody + Vaccine" ="#46C029")
+# colors <- c("Control" = "black", "TLR7 + Antibody" = "#00A3D3", "TLR7 + Vaccine" = "#FFD871", "TLR7 + Antibody + Vaccine" ="#46C029")
+colors <- c("Control" = "black", "TLR7" = "#027dbb", "Vac" = "#fcba12", "Ab" ="#fa61c2", "TLR7 + Vac" = "#7ab148",  "TLR7 + Ab" = "#7f48b1", "TLR7 + Vac + Ab" =  "#a96e7c")
 
 source(here("scripts", "forward_simulation_functions.R"))
 
@@ -33,8 +34,8 @@ add_treatments <- function(df){
                                       ab ==0 &vac ==1 &tlr7 ==0 ~ "Vac",
                                       ab ==1 &vac ==0 &tlr7 ==1 ~ "TLR7 + Ab",
                                       ab ==0 &vac ==1 &tlr7 ==1 ~ "TLR7 + Vac",
-                                      ab ==1 &vac ==1 &tlr7 ==1 ~ "TLR7 + Ab + Vac"),
-                Treatment = factor(Treatment, levels = c("Control", "TLR7", "Vac", "Ab", "TLR7 + Vac", "TLR7 + Ab", "TLR7 + Ab + Vac")))
+                                      ab ==1 &vac ==1 &tlr7 ==1 ~ "TLR7 + Vac + Ab"),
+                Treatment = factor(Treatment, levels = c("Control", "TLR7", "Vac", "Ab", "TLR7 + Vac", "TLR7 + Ab", "TLR7 + Vac + Ab")))
 }
 
 ## Create a table with individual parameter estimates ####
@@ -184,33 +185,69 @@ SHIV_traj <- typical_trajectories %>%
     treatment == "ab" ~ "Ab",
     treatment == "tlr7ab" ~ "TLR7 + Ab",
     treatment == "tlr7vac" ~ "TLR7 + Vac",
-    treatment == "tlr7abvac" ~ "TLR7 + Ab + Vac"
+    treatment == "tlr7abvac" ~ "TLR7 + Vac + Ab"
   )),
   BICc = case_when(am == "best_model" ~ 904, 
                    am == "best_4.4"~ 927,
                    am == "best_4.6"~ 918),
   am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
-              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)"))) %>% 
-  filter(post_activated == "yes") %>% 
+              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta"))) %>% 
+  filter(post_activated == "yes", am != "TLR7:Lambda, Ab:Lambda") %>% 
   ggplot(aes(time, V/log(10), group = interaction(am, treatment), color = am)) + 
   geom_hline(yintercept = 1.1, lty = "dashed", color = "gray") +
   # geom_line(data = add_treatments(STUDY4_DATA), inherit.aes = F, aes(time, vl, group = id) , alpha = 0.5, linewidth = 0.25) +
   geom_point(data = add_treatments(STUDY4_DATA), inherit.aes = F, aes(time, vl, group = id) , alpha = 0.5) +
   geom_line(linewidth = 1) + 
   coord_cartesian(ylim = c(0,7), expand = FALSE, xlim = c(0,200)) +
-  scale_color_viridis_d(direction = -1) +
+  scale_color_manual(values = scales::viridis_pal(direction = -1)(3)[-2]) +
+  # scale_color_viridis_d(direction = -1) +
   # scale_color_manual(values = unname(colors)) +
   scale_y_continuous(
     labels = scales::label_math(expr = 10^.x)
   ) + 
   labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
-       title = "SHIV TLR7 + Ab + Vac Study", color = "Model", lty = NULL) +
+       title = "SHIV TLR7 + Vac + Ab Study", color = "Model", lty = NULL) +
   theme(plot.title = element_text(hjust = 0.5, face = 2), legend.position = "bottom") + 
   facet_wrap(~Treatment, dir = "v") 
 # legend.position = c(1,1), legend.justification = c(1, 1), legend.box = "horizontal") 
 
 ggsave(here(out_folder, "population_trajectories.png"), SHIV_traj, width = 7, height = 7)
 
+colors <- c("Control" = "black", "TLR7" = "#027dbb", "Vac" = "#fcba12", "Ab" ="#fc12a6", "TLR7 + Vac" = "#7ab148",  "TLR7 + Ab" = "#7f48b1", "TLR7 + Vac + Ab" =  "#a96e7c")
+
+strip <- strip_themed(background_x = elem_list_rect(fill = rev(scales::viridis_pal()(3))),
+                      text_x = elem_list_text(color = c("black", "black", "white")))
+
+SHIV_compare_trmt_groups <- typical_trajectories %>% 
+  mutate(Treatment = fct_inorder(case_when(
+    treatment == "control" ~ "Control",
+    treatment == "tlr7" ~ "TLR7",
+    treatment == "ab" ~ "Ab",
+    treatment == "tlr7ab" ~ "TLR7 + Ab",
+    treatment == "tlr7vac" ~ "TLR7 + Vac",
+    treatment == "tlr7abvac" ~ "TLR7 + Vac + Ab"
+  )),
+  BICc = case_when(am == "best_model" ~ 904, 
+                   am == "best_4.4"~ 927,
+                   am == "best_4.6"~ 918),
+  am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
+              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)")),
+  treatment = factor(treatment, levels = c("control", "tlr7ab", "tlr7vac", "tlr7abvac"))) %>% 
+  filter(post_activated == "yes") %>% 
+  ggplot(aes(time, V/log(10), group = interaction(am, treatment), color = treatment)) + 
+  geom_hline(yintercept = 1.1, lty = "dashed", color = "gray") +
+  geom_line(linewidth = 1) + 
+  coord_cartesian(ylim = c(0,7), expand = FALSE, xlim = c(0,200)) +
+  scale_color_manual(values = unname(colors[c(1,6,5,7)])) +
+  scale_y_continuous(
+    labels = scales::label_math(expr = 10^.x)
+  ) + 
+  labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
+       title = "SHIV TLR7 + Vac + Ab Study", color = "Treatment", lty = NULL) +
+  theme(plot.title = element_text(hjust = 0.5, face = 2), legend.position = "bottom") + 
+  ggh4x::facet_wrap2(~am, strip = strip) 
+
+ggsave(here(out_folder, "population_trajectories_by_model.png"), SHIV_compare_trmt_groups, width = 10, height = 4)
 
 ## Plot individual trajectories for each study: ####
 
@@ -244,13 +281,14 @@ study4_indiv_fits <- individual_trajectories %>%
     treatment == "ab" ~ "Ab",
     treatment == "tlr7ab" ~ "TLR7 + Ab",
     treatment == "tlr7vac" ~ "TLR7 + Vac",
-    treatment == "tlr7abvac" ~ "TLR7 + Ab + Vac"
+    treatment == "tlr7abvac" ~ "TLR7 + Vac + Ab"
   )),
   BICc = case_when(am == "best_model" ~ 904, 
                    am == "best_4.4"~ 927,
                    am == "best_4.6"~ 918),
   am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
-              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)"))) %>% 
+              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta"))) %>% 
+  filter(am !=  "TLR7:Lambda, Ab:Lambda") %>% 
   arrange(am, Treatment) %>% mutate(id = fct_inorder(as.character(id))) %>%  
   # filter(post_activated == "yes") %>% 
   ggplot(aes(time, V/log(10))) + 
@@ -260,8 +298,9 @@ study4_indiv_fits <- individual_trajectories %>%
   geom_line(data = . %>% filter(pre_activated == "yes"), aes(color = am, group = am), alpha = 0.75, linewidth = 0.5) + 
   geom_line(data = . %>% filter(pre_activated == "no"), aes(color = am, group = am), alpha = 0.75, linewidth = 1) + 
   facet_wrap(~id, ncol = 9) + 
-  scale_color_viridis_d(direction = -1) +
-  scale_fill_manual(values = unname(colors)) +
+  scale_color_manual(values = scales::viridis_pal(direction = -1)(3)[-2]) +
+  # scale_color_viridis_d(direction = -1) +
+  scale_fill_manual(values = (colors)) +
   scale_y_continuous(
     labels = scales::label_math(expr = 10^.x),
     breaks = c(-1,1,3,5,7),
@@ -272,7 +311,8 @@ study4_indiv_fits <- individual_trajectories %>%
         strip.background = element_blank(), panel.grid = element_blank(),
         plot.title = element_text(face = "bold")) + 
   labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
-       title = "Study 4: SHIV-TLR7-Ab-Vac Individual Fits", color = "Model")
+       title = "Study 4: SHIV-TLR7-Ab-Vac Individual Fits", color = "Model") + 
+  guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 ggsave(here(out_folder, "individual_trajectories.png"), study4_indiv_fits, width = 11, height = 8)
 
@@ -299,7 +339,7 @@ tmp_df <- rbind(
          value = case_when(parameter == "betas"~value*1e-7,
                            parameter == "NPs"~value*1e5,
                            .default = value),
-         Treatment = factor(interaction(ab, vac), labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Ab + Vac" )),
+         Treatment = factor(interaction(ab, vac), labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Vac + Ab" )),
          Treatment = fct_rev(Treatment)) 
 
 conditional_indiv_params <- all_simParams %>% 
@@ -309,7 +349,7 @@ conditional_indiv_params <- all_simParams %>%
   # pivot_longer(contains("mode"), names_to = "parameter") %>% 
   mutate(am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
                      labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)")),
-         Treatment = factor(interaction(ab, vac), labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Ab + Vac" )),
+         Treatment = factor(interaction(ab, vac), labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Vac + Ab" )),
          Treatment = fct_rev(Treatment)) %>% 
   ggplot(aes(value, Treatment, fill = am, color = am)) + 
   geom_violin(scale = "width", alpha = 0.5, color = NA) + 
@@ -333,7 +373,7 @@ EBE_indiv_params <- all_indivParams %>%
   pivot_longer(contains("mode"), names_to = "parameter") %>%
   mutate(am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
                      labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)")),
-         Treatment = factor(interaction(ab, vac), labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Ab + Vac" )),
+         Treatment = factor(interaction(ab, vac), labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Vac + Ab" )),
          Treatment = fct_rev(Treatment)) %>% 
   ggplot(aes(value, Treatment, fill = am, color = am)) + 
   geom_violin(scale = "width", alpha = 0.5, color = NA) + 
@@ -367,7 +407,7 @@ pop_parameters_plot_groups <- rbind(
   mutate(am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
                      labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)")),
          Treatment = factor(Treatment, levels = c("control", "tlr7ab", "tlr7vac", "tlr7abvac"),
-                            labels = c("Control" , "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Ab + Vac")),
+                            labels = c("Control" , "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Vac + Ab")),
          Treatment = fct_rev(Treatment),
          value = case_when(parameter == "NPs"~log10(value*1e5),
                            parameter == "betas"~value*1e-7,
@@ -426,7 +466,7 @@ distribution_plot <- density_data %>%
                        # labels =  c("lambda","beta~'(x'~10^-7~')'", "t['a']", "m", "p", "N['p']")),
                        labels =  c("lambda","beta", "t['a']", "m", "p", "N['p']")),
     Treatment = factor(Treatment, levels = c("control", "tlr7ab", "tlr7vac", "tlr7abvac"),
-                       labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Ab + Vac")),
+                       labels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Vac + Ab")),
     am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
                 labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta (BH)"))) %>%
   ungroup %>% 

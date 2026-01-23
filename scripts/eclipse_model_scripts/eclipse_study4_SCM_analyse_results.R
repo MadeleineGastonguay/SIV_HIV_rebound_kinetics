@@ -20,20 +20,9 @@ out_folder <- here("results_eclipse", study)
 data_file <- here("data", "source", "VACABTLR7_DATA.txt")
 data <- read_delim(data_file, delim = "\t")
 
-## Define header types from the following options:
-# See ?newProject() for details
-headerTypes <- c("id", "time", "observation", "cens", rep("ignore", 3), rep("catcov", 3))
-
-## Random effects to exclude
-exclude_random_effects <- NULL # Either NULL or a character vector of parameters with no random effects
-
 ## Parameters to fix
 fixed <- c("lambda_pop" = 100, "p_pop" = 0.9)
 
-## Error model to use
-# Either "constant", "proportional", "combined1", or "combined2". See ?setErrorModel() for details
-error_model <- list("constant" )
-names(error_model) <- names(data)[headerTypes == "observation"]
 
 loadProject(here(out_folder, project_name))
 
@@ -41,12 +30,6 @@ loadProject(here(out_folder, project_name))
 mb <- getModelBuildingResults()
 
 out <- plot_model_building(mb)
-
-ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
-       out$plot, width = 10, height = 7)
-
-write_csv(out$summary, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_summary.csv"))
-
 
 ## Barplot figure with results:
 SCM_summary <- out$summary
@@ -65,7 +48,7 @@ SCM_summary_figure_study4 <- SCM_summary %>%
                         labels = c("","lambda", "beta", "t['a']", "m", "p", "N['p']"))) %>%
   mutate(param = fct_rev(param),
          treatment = factor(treatment, levels = rev(c("intTLR7VAC", "intTLR7AB", "intTLR7ABVAC")),
-                            labels = rev(c("TLR7 + Vaccine", "TLR7 + Antibody", "TLR7 + Antibody + Vaccine")))
+                            labels = rev(c( "Vaccine", "Antibody", "Antibody*Vaccine")))
   ) %>%
   ggplot(aes(BICc - threshold, treatment, fill = param)) +
   geom_rect(data = ~filter(., BICc == min(BICc)),
@@ -88,6 +71,9 @@ SCM_summary_figure_study4 <- SCM_summary %>%
   theme(axis.text = element_text(size = 12), axis.title = element_text(size = 15),
         strip.text = element_text(size = 15), legend.text = element_text(size = 12),
         legend.title = element_text(size = 15))
+
+ggsave(here(out_folder, str_remove(project_name, ".mlxtran"), "model_building_bar_plot.pdf"),
+       SCM_summary_figure_study4, width = 15, height = 15)
 
 ## Plot population trends at each step:
 included_effects <- SCM_summary %>% 
@@ -126,6 +112,36 @@ stepwise_preds %>%
 stepwise_preds %>% 
   left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
   left_join(distinct(data, id, ab, vac)) %>% 
+  filter(model %in% c("046", "103")) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  add_treatments() %>% 
+  ggplot(aes(time, popPred, group = interaction(id, model), color = factor(n_covar))) + 
+  geom_point(data = ~filter(.x, model == "046"), aes(time, vl), alpha = 0.5, color = "black") +
+  geom_line(linewidth = 1) + 
+  facet_wrap(~Treatment, dir = "v") + 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Number of treatment\neffect added",
+       title = "Predictions for candidate models")
+
+stepwise_preds %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  filter(model %in% c("046", "103")) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  add_treatments() %>% 
+  arrange(ab, vac) %>% 
+  mutate(id = fct_inorder(as.character(id))) %>% 
+  ggplot(aes(time, indivPred_SAEM, group = interaction(id, model))) + 
+  geom_point(data = ~filter(.x, model == "046"), aes(time, vl, fill = Treatment), alpha = 0.5, shape = 21) +
+  geom_line(alpha = 0.7, linewidth = 1, aes(color = factor(n_covar))) + 
+  facet_wrap(~id) + 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Number of treatment\neffect added",
+       title = "Predictions for candidate models")
+
+stepwise_preds %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
   filter(model != "001") %>% 
   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
   arrange(ab, vac) %>% 
@@ -145,7 +161,7 @@ stepwise_preds %>%
   left_join(distinct(data, id, ab, vac)) %>% 
   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
   arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
-  ggplot(aes(time, indivPred_mean, group = interaction(id, model), color = treatment_effect)) + 
+  ggplot(aes(time, indivPred_SAEM, group = interaction(id, model), color = treatment_effect)) + 
   geom_hline(yintercept = 1.04, lty = "dashed") +
   geom_point(data = ~filter(.x, model == "001"), aes(time, vl, fill = interaction(ab, vac)), shape = 21, inherit.aes = F) +
   geom_line(linewidth = 1, alpha = 0.5) + 
@@ -169,12 +185,12 @@ N_E <- fixed$N_E #this is about what z approaches, in the dynamics between immun
 #so we estimate at 1% of 10^6 CD4 cells per ml
 f <- fixed$f
 dTar <- fixed$dTar #target
-dI <- fixed$dI_macaque #infected
+# dI <- fixed$dI_macaque #infected
 dP <- fixed$dP #long lived
 dE <- fixed$dE #short memory
 # k <- fixed$k_human #also k/c
 c <- fixed$c
-I1 <- fixed$I1_human
+# I1 <- fixed$I1_human
 C <- fixed$C
 final_time <- fixed$final_time
 rho <- fixed$rho
@@ -185,13 +201,13 @@ I1 <- fixed$I1_monkey
 dI <- fixed$dI_macaque
 
 
-temp_df2 <- stepwise_indivParam %>% select(model, id, contains("mean"), starts_with("int")) %>% 
-  mutate(treatment = case_when(intTLR7AB == 0 & intTLR7VAC == 0 ~ "Control",
-                               intTLR7AB == 1 & intTLR7VAC == 0 ~ "TLR7 + Ab",
-                               intTLR7AB == 0 & intTLR7VAC == 1 ~ "TLR7 + Vac",
-                               intTLR7AB == 1 & intTLR7VAC == 1 ~ "TLR7 + Vac + Ab")) %>% 
-  select(model, treatment, id, contains("mean")) %>% 
-  rename_with(~gsub("_mean", "", .x), everything())
+temp_df2 <- stepwise_indivParam %>% select(model, id, contains("SAEM"), vac, ab) %>% 
+  mutate(treatment = case_when(ab == 0 & vac == 0 ~ "Control",
+                               ab == 1 & vac == 0 ~ "TLR7 + Ab",
+                               ab == 0 & vac == 1 ~ "TLR7 + Vac",
+                               ab == 1 & vac == 1 ~ "TLR7 + Vac + Ab")) %>% 
+  select(model, treatment, id, contains("SAEM")) %>% 
+  rename_with(~gsub("_SAEM", "", .x), everything())
 
 individual_trajectories <- data.frame()
 for(i in 1:nrow(temp_df2)){
@@ -206,7 +222,9 @@ for(i in 1:nrow(temp_df2)){
 
 save(individual_trajectories, file = here(out_folder, "SCM", "stepwise_indiv_sims.RData"))
 
+
 individual_trajectories %>% rename(Treatment = treatment) %>% 
+  # filter(model %in% c("046", "060", "103")) %>% 
   left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
   left_join(distinct(data, id, ab, vac)) %>% 
   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
@@ -222,7 +240,25 @@ individual_trajectories %>% rename(Treatment = treatment) %>%
        fill = "Treatment group") + 
   scale_fill_manual(values = colors, labels= c("Control", "TLR7+Antibody", "TLR7+Vaccine", "TLR7+Antibody+Vaccine"))
 
-diff_id <- c(7132, 7133, 7137, 7138, 7142, 7145, 7147, 7149, 7152)
+
+# individual_trajectories %>% rename(Treatment = treatment) %>% 
+#   left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+#   left_join(distinct(data, id, ab, vac)) %>% 
+#   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+#   arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
+#   ggplot(aes(time, V/log(10), group = model, color = treatment_effect)) + 
+#   geom_hline(yintercept = 1.04, lty = "dashed") +
+#   geom_point(data = data, aes(time, vl, fill = interaction(ab, vac)), shape = 21, inherit.aes = F) +
+#   geom_line(linewidth = 1, alpha = 0.5) + 
+#   facet_wrap(~id, labeller = "label_both") + 
+#   scale_color_viridis_d( begin = 0.2, end = 1) +
+#   coord_cartesian(ylim = c(-1, 6), xlim = c(0,168)) + 
+#   labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Treatment effect added",
+#        fill = "Treatment group") + 
+#   scale_fill_manual(values = colors, labels= c("Control", "TLR7+Antibody", "TLR7+Vaccine", "TLR7+Antibody+Vaccine"))
+
+# diff_id <- c(7132, 7133, 7137, 7138, 7142, 7145, 7147, 7149, 7152)
+diff_id <- c(7132, 7133,  7138, 7142, 7145, 7147, 7149, 7151, 7152)
 
 individual_trajectories %>% rename(Treatment = treatment) %>%
   filter(id %in% diff_id) %>% 
@@ -241,75 +277,24 @@ individual_trajectories %>% rename(Treatment = treatment) %>%
        fill = "Treatment group") + 
   scale_fill_manual(values = colors, labels= c("TLR7+Antibody", "TLR7+Antibody+Vaccine"))
 
-get_group_parameters <- function(popparams, effects = c("tlr7", "vac", "ab")){
-  # popparams <- as.data.frame(popparams)
-  popparams <- popparams %>% filter(!grepl("omega", parameter))
-  param <- popparams$value
-  names(param) <- popparams$parameter
-  
-  covariates <- make_covariate_matrix_list(param)
-  baseline <- log(param[grepl("pop", names(param))])
-  names(baseline) <- str_remove(names(baseline), "_pop")
-  
-  # make sure covariates and baseline are in the same order
-  covariates <- covariates[names(baseline)]
-  
-  
-  control = exp(add_covariate_effects(baseline, c(0,0,0,0), covariates))
-  tlr7 = exp(add_covariate_effects(baseline, c(1,0,0,0), covariates))
-  
-  
-  if("vac" %in% effects){
-    vac = exp(add_covariate_effects(baseline, c(0,1,0,0), covariates))
-    tlr7vac = exp(add_covariate_effects(baseline, c(1,1,0,0), covariates))  
-  }else{
-    vac = NA
-    tlr7vac = NA
-    tlr7abvac = NA
-  }
-  
-  if("ab" %in% effects){
-    ab = exp(add_covariate_effects(baseline, c(0,0,0,1), covariates))
-    tlr7ab = exp(add_covariate_effects(baseline, c(1,0,0,1), covariates))
-  }else{
-    ab = NA
-    tlr7ab = NA
-    tlr7abvac = NA
-  }
-  
-  if(all(c("vac", "ab") %in% effects)){
-    tlr7abvac = exp(add_covariate_effects(baseline, c(1,1,0,1), covariates))
-    ab = NA
-    tlr7 = NA
-    vac = NA
-  }
-  
-  
-  out <- data.frame(
-    parameter = names(baseline),
-    control = control,
-    tlr7 = tlr7,
-    vac = vac, tlr7vac = tlr7vac,
-    ab = ab, tlr7ab = tlr7ab,
-    tlr7abvac = tlr7abvac
-  )
-  
-  return(out)
-  
-}
+individual_trajectories %>% rename(Treatment = treatment) %>%
+  filter(id %in% diff_id) %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
+  left_join(distinct(data, id, ab, vac)) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
+  arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
+  ggplot(aes(time, V/log(10), group = model, color = treatment_effect)) + 
+  geom_hline(yintercept = 1.1, lty = "dashed") +
+  geom_point(data = data %>% filter(id %in% diff_id), aes(time, vl, fill = interaction(ab, vac)), shape = 21, inherit.aes = F) +
+  geom_line(linewidth = 1) + 
+  facet_grid(treatment_effect~id) + 
+  scale_color_viridis_d( begin = 0.2, end = 1) +
+  coord_cartesian(ylim = c(-1, 6), xlim = c(0,168)) + 
+  labs(x = "Time since ART interruption (days)", y = "Viral load", color = "Treatment effect added",
+       fill = "Treatment group") + 
+  scale_fill_manual(values = colors, labels= c("TLR7+Antibody", "TLR7+Antibody+Vaccine"))
 
-stepwise_popParam %>% 
-  group_by(model) %>% 
-  group_modify(~get_group_parameters(.x, effects = c("tlr7", "ab", "vac")) )
 
-popparams_by_group <- rbind(
-  get_group_parameters(stepwise_popParam %>% filter(model == "study1"), effects = "tlr7") %>% mutate(data = "study1"),
-  get_group_parameters(all_popparam %>% filter(data == "study2"), effects = c("tlr7", "vac")) %>% mutate(data = "study2"),
-  get_group_parameters(all_popparam %>% filter(data == "study3"), effects = c("tlr7", "ab")) %>% mutate(data = "study3")
-  # get_group_parameters(all_popparam %>% filter(data == "study4"), effects = c("tlr7", "ab", "vac")) %>% mutate(data = "study4")
-) %>% 
-  select(data, parameter, everything()) %>% 
-  remove_rownames()
 
 ## Population trajectories
 temp_df <- stepwise_popParam %>% 
@@ -317,8 +302,8 @@ temp_df <- stepwise_popParam %>%
                                intTLR7AB == 1 & intTLR7VAC == 0 ~ "TLR7 + Ab",
                                intTLR7AB == 0 & intTLR7VAC == 1 ~ "TLR7 + Vac",
                                intTLR7AB == 1 & intTLR7VAC == 1 ~ "TLR7 + Vac + Ab")) %>% 
-  select(model, treatment, id, contains("mean")) %>% 
-  rename_with(~gsub("_mean", "", .x), everything())
+  select(model, treatment, id, contains("SAEM")) %>% 
+  rename_with(~gsub("_SAEM", "", .x), everything())
 
 individual_trajectories <- data.frame()
 for(i in 1:nrow(temp_df2)){
@@ -340,7 +325,7 @@ stepwise_preds %>%
   left_join(distinct(data, id, ab, vac)) %>% 
   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
   arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
-  mutate(error = ifelse(vl <= 1.1 & indivPred_mean <= 1.1, 0, indivPred_mean-vl)) %>% 
+  mutate(error = ifelse(vl <= 1.1 & indivPred_SAEM <= 1.1, 0, indivPred_SAEM-vl)) %>% 
   ggplot(aes(time, error, color = treatment_effect)) +
   geom_hline(aes(yintercept = 0)) +
   geom_line(linewidth = 1, alpha = 0.5) + 
@@ -354,7 +339,7 @@ stepwise_preds %>%
   left_join(distinct(data, id, ab, vac)) %>% 
   mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, treatment, sep = ":")))) %>%
   arrange(vac, ab) %>% mutate(id = fct_inorder(as.character(id))) %>% 
-  mutate(error = ifelse(vl <= 1.1 & indivPred_mean <= 1.1, 0, indivPred_mean-vl)) %>% 
+  mutate(error = ifelse(vl <= 1.1 & indivPred_SAEM <= 1.1, 0, indivPred_SAEM-vl)) %>% 
   ggplot(aes(time, error, color = treatment_effect)) +
   geom_hline(aes(yintercept = 0)) +
   geom_line(linewidth = 1) + 
@@ -400,7 +385,7 @@ stepwise_popParam %>%
   scale_fill_viridis_d(begin = 0.2, end = 1) + 
   labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added")
 
-## Compared to prior model, how does next model change?
+## Compared to prior model, how does next model change? ####
 
 compare_df <- merge(
   stepwise_preds %>% 
@@ -413,11 +398,12 @@ compare_df <- merge(
     left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>% 
     mutate(n_covar = n_covar + 1),
   by = c("n_covar", "id", "time")
-  ) 
+) %>% 
+  mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, str_remove(treatment.x, "intTLR7"), sep = ":")))) 
 
 compare_df %>%
   left_join(distinct(data, id, ab, vac)) %>% 
-  mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
+  # mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
   ggplot(aes(time, popPred-popPred_ref, color = treatment_effect, group = interaction(id, model.x))) + 
   geom_hline(yintercept = 0, lty = "dashed") + 
   geom_line(linewidth = 1) + 
@@ -427,7 +413,7 @@ compare_df %>%
 
 compare_df %>%
   left_join(distinct(data, id, ab, vac)) %>% 
-  mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
+  # mutate(treatment_effect = fct_inorder(ifelse(param.x == "", "No treatment effects", paste(param.x, treatment.x, sep = ":")))) %>%
   arrange(ab, vac) %>% 
   mutate(Treatment = fct_inorder(case_when(ab == 1 & vac == 1 ~ "TLR7 + Ab + Vac", 
                                            ab == 1 & vac == 0 ~ "TLR7 + Ab",
@@ -450,3 +436,169 @@ compare_df %>%
   facet_wrap(ab~vac, labeller = "label_both") + 
   scale_color_viridis_d(begin = 0.2, end = 1) + 
   labs(x = "Time", y = "Change from model at previous step", color = "Treatment effect added")
+
+
+add_treatments <- function(df){
+  df <- df %>% left_join(distinct(data, id, ab, vac)) %>%   
+    arrange(ab, vac) %>% 
+    mutate(Treatment = fct_inorder(case_when(ab == 1 & vac == 1 ~ "TLR7 + Ab + Vac", 
+                                             ab == 1 & vac == 0 ~ "TLR7 + Ab",
+                                             ab == 0 & vac == 1 ~ "TLR7 + Vac",
+                                             ab == 0 & vac == 0 ~ "Control"))) 
+  
+  return(df)
+}
+
+stepwise_popParam_plotting <- stepwise_popParam %>% 
+  rbind(data.frame(parameter = "beta_lambda_intTLR7AB_1", value = 0, model = "001")) %>% 
+  left_join(mutate(included_effects, model = sprintf("%03d", mod))) %>%  
+  mutate(treatment_effect = fct_inorder(ifelse(param == "", "No treatment effects", paste(param, str_remove(treatment, "intTLR7"), sep = ":")))) 
+
+study4_explore_mb <- compare_df %>% 
+  add_treatments() %>%
+  group_by(ab, vac) %>% 
+  filter(id == min(id)) %>% 
+  mutate(treatment_effect = factor(treatment_effect, levels = c("No treatment effects", levels(compare_df$treatment_effect)))) %>% 
+  ggplot(aes(time, group = id)) + 
+  geom_point(data= add_treatments(data), aes(time, vl), inherit.aes = FALSE, alpha = 0.25) + 
+  geom_ribbon(aes(ymin = pmin(popPred_ref, popPred), ymax = pmax(popPred_ref, popPred)), alpha = 0.8, fill = "gray", color = "black") +
+  # geom_ribbon(data = ~filter(.x, popPred_ref < popPred), aes(ymin = pmin(popPred_ref, popPred), ymax = pmax(popPred_ref, popPred), fill = "Increase"),  alpha = 0.75) + 
+  # geom_ribbon(data = ~filter(.x, popPred_ref > popPred), aes(ymin = pmin(popPred_ref, popPred), ymax = pmax(popPred_ref, popPred), fill = "Decrease"), alpha = 0.75) + 
+  # geom_line(aes(y = popPred_ref, color = "ref"), linewidth = 1) + 
+  geom_line(data = stepwise_preds %>% 
+              mutate(treatment_effect = factor("No treatment effects", levels = c("No treatment effects", levels(compare_df$treatment_effect)))) %>%  
+              add_treatments() %>% filter(model == "001"), aes(time, popPred, color = treatment_effect), linewidth = 1.5) + 
+  geom_line(aes(y = popPred, color = treatment_effect), linewidth = 1.5) + 
+  facet_grid(treatment_effect~Treatment) +
+  scale_color_viridis_d(begin = 0.2, end = 1)  +
+  labs(x = "Time since ART interruption (days)", y = "Viral load") +
+  # scale_fill_manual(values = c("Decrease" = "darkred", "Increase" = "darkgreen"))
+  
+  stepwise_popParam_plotting %>%
+  filter(grepl("beta_", parameter)) %>% 
+  arrange(treatment_effect, mod) %>%  
+  mutate(parameter = fct_rev(fct_inorder(gsub("_intTLR7", ":", gsub("_1", "", gsub("beta_", "", parameter)))))) %>% 
+  ggplot(aes(parameter, value, fill = treatment_effect)) + 
+  # geom_hline(yintercept = 0) +
+  geom_col() + 
+  facet_wrap(~treatment_effect, ncol = 1) + 
+  scale_fill_viridis_d(begin = 0.2, end = 1) + 
+  # labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added") + 
+  theme(legend.position = "none") + 
+  plot_layout(guides = "collect", widths = c(3,1)) + coord_flip() +
+  labs(x = "treatment effect", y = "Treatment effect") + 
+  geom_hline(yintercept = 0) +
+  
+  stepwise_popParam_plotting %>% 
+  filter(grepl("pop", parameter)) %>% 
+  mutate(parameter = fct_rev(fct_inorder(gsub("_pop", "",parameter)))) %>% 
+  group_by(parameter) %>% mutate(value = value/max(value)) %>% 
+  ggplot(aes(parameter, value, fill = treatment_effect)) + 
+  # geom_hline(yintercept = 0) +
+  geom_col() + 
+  facet_wrap(~treatment_effect, scales = "free_y", ncol = 1) + 
+  scale_fill_viridis_d(begin = 0.2, end = 1) + 
+  # labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added") + 
+  theme(legend.position = "none") + 
+  labs(x = "parameter", y = "Population parameter\nestimate normalized by maximum") +
+  coord_flip() +
+  
+  stepwise_popParam_plotting %>% 
+  filter(grepl("omega", parameter)) %>% 
+  mutate(parameter = fct_rev(fct_inorder(gsub("omega_", "",parameter)))) %>% 
+  ggplot(aes(parameter, value, fill = treatment_effect)) + 
+  # geom_hline(yintercept = 0) +
+  geom_col() + 
+  facet_wrap(~treatment_effect, scales = "free_y", ncol = 1) + 
+  scale_fill_viridis_d(begin = 0.2, end = 1) + 
+  # labs(x = "Number of treatment effects", y = "Standard deviation of random effect", fill = "Treatment effect added") + 
+  theme(legend.position = "none") + 
+  labs(x = "parameter", y = "Random Effect") +
+  coord_flip() +
+  
+  plot_layout(guides = "collect", widths = c(4,1,1,1), nrow = 1) &
+  theme(legend.position = "none") &
+  plot_annotation(tag_levels = "a")
+
+
+ggsave(here(out_folder, str_remove(project_name, ".mlxtran"), "stepwise_model_building_plots.pdf"),
+       study4_explore_mb, width = 15, height = 10)
+
+stepwise_preds %>% 
+  add_treatments() %>%
+  group_by(ab, vac) %>% 
+  filter( model == "039") %>% 
+  # mutate(treatment_effect = factor(treatment_effect, levels = c("No treatment effects", levels(compare_df$treatment_effect)))) %>% 
+  ggplot(aes(time, group = id)) + 
+  # geom_ribbon(aes(ymin = pmin(popPred_ref, popPred), ymax = pmax(popPred_ref, popPred)), alpha = 0.75, fill = "gray") +
+  # geom_ribbon(data = ~filter(.x, popPred_ref < popPred), aes(ymin = pmin(popPred_ref, popPred), ymax = pmax(popPred_ref, popPred), fill = "Increase"),  alpha = 0.75) + 
+  # geom_ribbon(data = ~filter(.x, popPred_ref > popPred), aes(ymin = pmin(popPred_ref, popPred), ymax = pmax(popPred_ref, popPred), fill = "Decrease"), alpha = 0.75) + 
+  geom_line(aes(y = popPred, color = Treatment, lty = Treatment), linewidth = 1, alpha = 0.5) + 
+  # geom_line(aes(y = popPred_ref, color = "ref"), linewidth = 1) + 
+  # geom_line(data = stepwise_preds %>% 
+  #             mutate(treatment_effect = factor("No treatment effects", levels = c("No treatment effects", levels(compare_df$treatment_effect)))) %>%  
+  #             add_treatments() %>% filter(model == "001"), aes(time, popPred, color = treatment_effect), linewidth = 1.5) + 
+  facet_grid(Treatment~model) 
+# scale_color_viridis_d(begin = 0.2, end = 1)  
+
+stepwise_indivParam %>% 
+  select(id, contains("SAEM"), starts_with("int"), "model") %>% 
+  pivot_longer(contains("SAEM")) %>% 
+  left_join(distinct(data,id, tlr7,ab,vac)) %>% 
+  ggplot(aes(interaction(tlr7,ab,vac), value, color = model)) + 
+  geom_violin() + 
+  # geom_beeswarm() + 
+  facet_wrap(~name, scales = "free_y") + 
+  scale_y_log10()
+
+## Get group parameters for final model: ####
+
+popparams <- stepwise_popParam %>% 
+  filter(model == 103, grepl("pop", parameter)) %>% 
+  mutate(parameter = gsub("_pop", "", parameter)) %>% 
+  select(parameter, control = value)
+
+trt_effects <- stepwise_popParam %>% 
+  filter(model == 103) %>% 
+  filter(grepl("beta_", parameter)) %>% 
+  separate(parameter, sep = "_", into = c("t", "parameter", "group", "t2")) %>% 
+  mutate(group = gsub("intTLR7", "", group)) %>% 
+  select(-t, -t2, -model) %>% 
+  pivot_wider(names_from = group, values_from = value, values_fill = 0) %>% 
+  mutate(ABVAC = AB + VAC)
+
+trt_effects <- rbind(trt_effects, 
+                     data.frame(
+                       parameter = popparams$parameter[!popparams$parameter %in% trt_effects$parameter], 
+                       AB = 0, VAC = 0, ABVAC = 0
+                     )
+)
+
+group_param <- left_join(popparams, pivot_longer(trt_effects, !parameter)) %>%
+  mutate(value = control*exp(value)) %>% 
+  pivot_wider()
+
+write_csv(group_param, here(out_folder, str_remove(project_name, ".mlxtran"), "final_model_parameters_by_group.csv"))
+
+## Compare with other SCM:
+
+group_param_tlr7 <- read_csv(here(out_folder, "SCM_tlr7", "final_model_parameters_by_group.csv"))
+
+compare_param_by_group <- rbind(
+  group_param %>% mutate(SCM = "original"),
+  group_param_tlr7 %>% mutate(SCM = "TLR7") %>% 
+    rename(AB = TLR7AB, VAC = TLR7VAC, ABVAC = TLR7ABVAC)
+) %>% 
+  pivot_longer(!c(parameter, SCM), names_to = "group") %>% 
+  mutate(group = factor(group, levels = rev(c("control", "AB", "VAC", "ABVAC"))),
+         parameter = factor(parameter, levels = popparams$parameter )) %>% 
+  # mutate(value = ifelse(parameter == "NPs", value*1e5, value)) %>% 
+  ggplot(aes(group, value, fill = SCM)) + 
+  geom_col(position = position_dodge()) + 
+  geom_text(data = . %>% filter(value > 1), aes(label = signif(value, 1)),  position = position_dodge(width  = 0.9), hjust = 1) +
+  geom_text(data = . %>% filter(value < 1), aes(label = signif(value, 1)), hjust = 0, position = position_dodge(width  = 0.9)) +
+  facet_wrap(~parameter, scales = "free_x") +
+  scale_y_log10() + 
+  coord_flip() +
+  labs(x = "Parameter estimate")
+
