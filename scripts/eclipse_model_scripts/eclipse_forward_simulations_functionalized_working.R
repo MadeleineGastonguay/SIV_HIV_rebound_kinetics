@@ -186,6 +186,31 @@ if(base_organism == "human"){
   dI <- fixed$dI_macaque
 }
 
+## Function to get varcov and parameter matrices based on study:
+
+get_monolix_outputs <- function(study){
+  varcov_mat <- switch (study,
+                        "human" = Human_varcov_mat,
+                        "whitney_SIV" = TLR7_varcov_mat,
+                        "barouch_SIV" = TLR7vac_varcov_mat,
+                        "barouch_SHIV" = TLR7ab_varcov_mat
+  )
+  par_df <- switch (study,
+                    "human" = Human_pars,
+                    "whitney_SIV" = TLR7_pars,
+                    "barouch_SIV" = TLR7vac_pars,
+                    "barouch_SHIV" = TLR7ab_pars
+  )
+  par_list <- switch (study,
+                      "human" = human_par_list,
+                      "whitney_SIV" = TLR7_par_list,
+                      "barouch_SIV" = TLR7vac_par_list,
+                      "barouch_SHIV" = TLR7ab_par_list
+  )
+  
+  return(list(varcov_mat = varcov_mat, par_df = par_df, par_list = par_list))
+}
+
 # Simulate many trajectories with varying population parameter values ####
 num_its <- 200 #number of trajectories to simulate
 
@@ -200,24 +225,10 @@ virtual_trial <- function(base_organism, num_its, cov_vec_list){
   
   
   # Sample population parameters for baseline organism: ####
-  varcov_mat <- switch (base_organism,
-                        "human" = Human_varcov_mat,
-                        "whitney_SIV" = TLR7_varcov_mat,
-                        "barouch_SIV" = TLR7vac_varcov_mat,
-                        "barouch_SHIV" = TLR7ab_varcov_mat
-  )
-  par_df <- switch (base_organism,
-                    "human" = Human_pars,
-                    "whitney_SIV" = TLR7_pars,
-                    "barouch_SIV" = TLR7vac_pars,
-                    "barouch_SHIV" = TLR7ab_pars
-  )
-  par_list <- switch (base_organism,
-                      "human" = human_par_list,
-                      "whitney_SIV" = TLR7_par_list,
-                      "barouch_SIV" = TLR7vac_par_list,
-                      "barouch_SHIV" = TLR7ab_par_list
-  )
+  temp <- get_monolix_outputs(base_organism)
+  varcov_mat <- temp$varcov_mat
+  par_df <- temp$par_df
+  par_list <- temp$par_list
   
   base_organism_scaled <- matrix(nrow = num_its, ncol = nrow(par_df))
   baseline_individuals <- matrix(nrow = num_its, ncol = sum(grepl("pop", rownames(par_df))))
@@ -264,21 +275,11 @@ virtual_trial <- function(base_organism, num_its, cov_vec_list){
         
         treatment_study <- paste(rev(rev(str_split_1(group_name, "_"))[1:2]), collapse = "_")
         
-        varcov_mat <- switch (treatment_study,
-                              "whitney_SIV" = TLR7_varcov_mat,
-                              "barouch_SIV" = TLR7vac_varcov_mat,
-                              "barouch_SHIV" = TLR7ab_varcov_mat
-        )
-        par_df <- switch (treatment_study,
-                          "whitney_SIV" = TLR7_pars,
-                          "barouch_SIV" = TLR7vac_pars,
-                          "barouch_SHIV" = TLR7ab_pars
-        )
-        par_list <- switch (treatment_study,
-                            "whitney_SIV" = TLR7_par_list,
-                            "barouch_SIV" = TLR7vac_par_list,
-                            "barouch_SHIV" = TLR7ab_par_list
-        )
+        # get varcov and parameter matrices for treatment study
+        temp <- get_monolix_outputs(treatment_study)
+        varcov_mat <- temp$varcov_mat
+        par_df <- temp$par_df
+        par_list <- temp$par_list
         
         
         #### sample model parameters from multivariate normal distribution
@@ -289,6 +290,31 @@ virtual_trial <- function(base_organism, num_its, cov_vec_list){
         }
         
         treatment_effects_tmp <- make_covariate_matrix_list(treatment_fit_results_scaled)
+        
+        ## If a TLR7 effect is included for monkey, sample it from the same study as the organism
+        if(cov_vec_tmp[1] == 1 & treatment_study != base_organism){
+          treatment_effects_tmp <- lapply(treatment_effects_tmp, function(x){ x[1,1] <- 0; return(x)})
+          
+          temp <- get_monolix_outputs(base_organism)
+          varcov_mat <- temp$varcov_mat
+          par_df <- temp$par_df
+          par_list <- temp$par_list
+          
+          #### sample model parameters from multivariate normal distribution
+          treatment_fit_results_scaled <- sample_fitting_results_scaled(par_df[par_list, "value"], varcov_mat[par_list, par_list])
+          # Make sure omegas are positive:
+          while(any(treatment_fit_results_scaled[grepl("omega",par_list)] < 0)){
+            treatment_fit_results_scaled <- sample_fitting_results_scaled(par_df[par_list, "value"], varcov_mat[par_list, par_list])
+          }
+          
+          treatment_effects_tmp_tlr7 <- make_covariate_matrix_list(treatment_fit_results_scaled)
+          treatment_effects_tmp_tlr7 <- lapply(treatment_effects_tmp_tlr7, function(x){ y <- x; y[,] <- 0; y[1,1] <- x[1,1] ; return(y)})
+          
+          treatment_effects_tmp <- lapply(1:length(treatment_effects_tmp_tlr7), function(i) treatment_effects_tmp_tlr7[[i]] + treatment_effects_tmp[[i]] )
+          
+        }
+        
+        
       }
       
       
@@ -371,27 +397,27 @@ quad_df <- human_trials[[2]]
 trajectory_record_final <- human_trials[[3]]
 parameter_df <- human_trials[[4]]
 
-save(trajectory_record_final, final_df_data, quad_df, cov_vec_list, parameter_df,
-     file = here("results_eclipse", "simulations", "human_simulations_all_scenarios_sampled_omega_09_26.RData"))
+# save(trajectory_record_final, final_df_data, quad_df, cov_vec_list, parameter_df,
+#      file = here("results_eclipse", "simulations", "human_simulations_all_scenarios_sampled_omega_09_26.RData"))
 
 
 I1 <- fixed$I1_monkey
 dI <- fixed$dI_macaque
 
-whitney_SIV_trials <- virtual_trial("whitney_SIV", num_its, cov_vec_list)
+whitney_SIV_trials <- virtual_trial("whitney_SIV", num_its, cov_vec_list[-c(3,6)])
 
 save(whitney_SIV_trials,
-     file = here("results_eclipse", "simulations", "study1_SIV_09_26.RData"))
+     file = here("results_eclipse", "simulations", "study1_SIV_tlr7_effect_adjusted.RData"))
 
-barouch_SIV_trials <- virtual_trial("barouch_SIV", num_its, cov_vec_list[-2])
+barouch_SIV_trials <- virtual_trial("barouch_SIV", num_its, cov_vec_list[-c(2,6)])
 
 save(barouch_SIV_trials,
-     file = here("results_eclipse", "simulations", "study2_SIV_09_26.RData"))
+     file = here("results_eclipse", "simulations", "study2_SIV_tlr7_effect_adjusted.RData"))
 
 barouch_SHV_trials <- virtual_trial("barouch_SHIV", num_its, cov_vec_list[-c(2,3)])
 
 save(barouch_SHV_trials,
-     file = here("results_eclipse", "simulations", "study3_SHIV_09_26.RData"))
+     file = here("results_eclipse", "simulations", "study3_SHIV_tlr7_effect_adjusted.RData"))
 
 ######### HUMAN MAIN FIGURE ##############
 
@@ -465,7 +491,7 @@ m2 <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_wrap(~ name_f) +
   geom_point(data=filter(final_df_data, t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
   geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
   theme_bw() +  
-  xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 6.5), ylim=c(-2.5, 6.5)) + 
+  xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-4.5, 7), ylim=c(-4.5, 7)) + 
   geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
   geom_text(x= 5, y = 0, aes(label = quad_2), data=quad_df, color='black') + geom_text(x= -1.5, y = 0, aes(label = quad_3), data=quad_df, color='black') + 
   scale_x_continuous(breaks=c(-2, 0, 2, 4, 6), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}))) +
@@ -475,7 +501,7 @@ m2 <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_wrap(~ name_f) +
 
 show(m2)
 
-ggsave(here("paper_figures", "figure_S9.pdf"), plot=m2, width=20, height=20, unit='cm')
+ggsave(here("paper_figures", "figure_S9.pdf"), plot=m2, width=25, height=25, unit='cm')
 
 m3 <- ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x = time, y = V/log(10))) + facet_wrap(~ name_f) + 
   geom_line(data = filter(trajectory_record_final_cut , pre_activated == "yes"), linetype="solid", linewidth=0.3, color="darkgrey") +
@@ -499,37 +525,49 @@ ggsave(here("paper_figures", "figure_S8.pdf"), plot=m3, width=20, height=20, uni
 
 ######### SIV ##############
 
-final_df_data <- rbind(whitney_SIV_trials[[1]] %>% mutate(study = "S1") %>% 
-                         filter(!name_f %in% c("TLR7 (S2)", "TLR7 + Vaccine (S2)", "TLR7 + Antibody (S3)", "TLR7 (S3)")), 
-                       barouch_SIV_trials[[1]] %>% mutate(study = "S2") %>% 
-                         filter(!name_f %in% c("TLR7 + Antibody (S3)", "TLR7 (S3)")))
-quad_df <- rbind(whitney_SIV_trials[[2]] %>% mutate(study = "S1") %>% 
-                   filter(!name_f %in% c("TLR7 (S2)", "TLR7 + Vaccine (S2)", "TLR7 + Antibody (S3)", "TLR7 (S3)")), 
-                 barouch_SIV_trials[[2]] %>% mutate(study = "S2") %>% 
-                   filter(!name_f %in% c("TLR7 + Antibody (S3)", "TLR7 (S3)")))
-trajectory_record_final <- rbind(whitney_SIV_trials[[3]] %>% mutate(study = "S1") %>% 
-                                   filter(!name_f %in% c("TLR7 (S2)", "TLR7 + Vaccine (S2)", "TLR7 + Antibody (S3)", "TLR7 (S3)")), 
-                                 barouch_SIV_trials[[3]] %>% mutate(study = "S2") %>% 
-                                   filter(!name_f %in% c("TLR7 + Antibody (S3)", "TLR7 (S3)")))
-parameter_df <- rbind(whitney_SIV_trials[[4]] %>% mutate(study = "S1") %>% 
-                        filter(!name_f %in% c("TLR7 (S2)", "TLR7 + Vaccine (S2)", "TLR7 + Antibody (S3)", "TLR7 (S3)")), 
-                      barouch_SIV_trials[[4]] %>% mutate(study = "S2") %>% 
-                        filter(!name_f %in% c("TLR7 + Antibody (S3)", "TLR7 (S3)")))
+final_df_data <- rbind(
+  whitney_SIV_trials[[1]] %>% mutate(study = "(S1)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S1)"))),
+  barouch_SIV_trials[[1]] %>% mutate(study = "(S2)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S2)"))))
+quad_df <- rbind(
+  whitney_SIV_trials[[2]] %>% mutate(study = "(S1)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S1)"))),
+  barouch_SIV_trials[[2]] %>% mutate(study = "(S2)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S2)"))))
+trajectory_record_final <- rbind(
+  whitney_SIV_trials[[3]] %>% mutate(study = "(S1)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S1)"))),
+  barouch_SIV_trials[[3]] %>% mutate(study = "(S2)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S2)"))))
+parameter_df <- rbind(
+  whitney_SIV_trials[[4]] %>% mutate(study = "(S1)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S1)"))),
+  barouch_SIV_trials[[4]] %>% mutate(study = "(S2)") %>% 
+    mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S2)"))))
 
 trajectory_record_final_cut <- trajectory_record_final[trajectory_record_final$id <= 20,]
 
+
+
 #color by rebound time
-m2_siv <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_grid(study~ name_f) + 
+m2_siv <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_wrap(~ name_f) + 
   #geom_point(alpha = 0.4, shape = 21, colour = "black", fill = NA, stroke = .15, size=1) +
   
   geom_point(data=filter(final_df_data, t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
-  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
+  geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + 
+  scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, 
+                       trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), 
+                       labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
   theme_bw() +  
   xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 6.5), ylim=c(-2.5, 6.5)) + 
-  geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
-  geom_text(x= 5, y = 0, aes(label = quad_2), data=quad_df, color='black') + geom_text(x= -1.5, y = 0, aes(label = quad_3), data=quad_df, color='black') + 
-  scale_x_continuous(breaks=c(-2, 0, 2, 4, 6), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}))) +
-  scale_y_continuous(breaks=c(-2, 0, 2, 4, 6), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}))) +
+  geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + 
+  geom_text(x= 5, y = 7, aes(label = quad_1), data=quad_df, color='black') + 
+  geom_text(x= 5, y = -1, aes(label = quad_2), data=quad_df, color='black') + 
+  geom_text(x= -1.5, y = -1, aes(label = quad_3), data=quad_df, color='black') + 
+  scale_x_continuous(breaks=c(-2, 0, 2, 4, 6, 8), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}), expression(10^{8}))) +
+  scale_y_continuous(breaks=c(-2, 0, 2, 4, 6, 8), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}), expression(10^{8}))) +
+  coord_cartesian(xlim = c(-2.5, 8), ylim = c(-2.5,8)) +
   theme(strip.background = element_blank(),
         panel.border = element_rect(colour = "black"), aspect.ratio=1) 
 #scale_x_continuous(breaks=c(0, 2, 4, 6), labels=c(0, 2, 4, 6)) + scale_y_continuous(breaks=c(0, 2, 4, 6), labels=c(0, 2, 4, 6))
@@ -538,11 +576,11 @@ show(m2_siv)
 
 
 # ggsave("macaque_siv_predictions_scatter_6_10_19.pdf", plot=m2_siv, width=20, height=20, unit='cm')
-ggsave(here("paper_figures", "figure_S11.pdf"), plot=m2_siv, width=25, height=10, unit='cm')
+ggsave(here("paper_figures", "figure_S11.pdf"), plot=m2_siv, width=25, height=20, unit='cm')
 
 
 
-m3_siv <- ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x = time, y = V/log(10))) + facet_grid(study~ name_f) + 
+m3_siv <- ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x = time, y = V/log(10))) + facet_wrap(~ name_f) + 
   geom_line(data = filter(trajectory_record_final_cut , pre_activated == "yes"), linetype="solid", linewidth=0.3, color="darkgrey") +
   geom_line(data = filter(trajectory_record_final_cut , post_activated == "yes"), linetype="solid") +
   scale_color_distiller(palette = "Spectral", direction=-1, name="Set point\nviral load", 
@@ -550,7 +588,8 @@ m3_siv <- ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x =
   theme_bw() +  
   xlab("Time after ART stop (days)") + ylab("Viral load (copies/mL)") + coord_cartesian(xlim=c(0, 120)) + #ylim=c(-2.5, 8)
   geom_hline(yintercept = log10(50), linetype="dashed") + 
-  scale_y_continuous(breaks=c(-4, -2, 0, 2, 4, 6, 8), labels=c(expression(10^{-4}), expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}),  expression(10^{8}))) +
+  scale_y_continuous(breaks=c(-4, -2, 0, 2, 4, 6, 8), labels=c(expression(10^{-4}), expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}),  expression(10^{8})),
+                     limits = c(-4,8)) +
   #scale_x_continuous(breaks=c(0, 20, 40, 60, 80, 100, 120)) +
   theme(strip.background = element_blank(),
         panel.border = element_rect(colour = "black"), aspect.ratio=1) 
@@ -558,17 +597,21 @@ m3_siv <- ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x =
 show(m3_siv)
 
 # ggsave("macaque_siv_example_simulations_6_10_19.pdf", plot=m3_siv, width=20, height=20, unit='cm')
-ggsave(here("paper_figures", "figure_S10.pdf"), plot=m3_siv, width=25, height=10, unit='cm')
+ggsave(here("paper_figures", "figure_S10.pdf"), plot=m3_siv, width=25, height=20, unit='cm')
 
 
 ######### END SIV ############
 
 ######### SHIV #############
 
-final_df_data <- barouch_SHV_trials[[1]] %>% filter(name_f != "TLR7 + Vaccine (S2)")
-quad_df <- barouch_SHV_trials[[2]] %>% filter(name_f != "TLR7 + Vaccine (S2)")
-trajectory_record_final <- barouch_SHV_trials[[3]] %>% filter(name_f != "TLR7 + Vaccine (S2)")
-parameter_df <- barouch_SHV_trials[[4]] %>% filter(name_f != "TLR7 + Vaccine (S2)")
+final_df_data <- barouch_SHV_trials[[1]] %>% 
+  mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S3)")))
+quad_df <- barouch_SHV_trials[[2]] %>% 
+  mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S3)")))
+trajectory_record_final <- barouch_SHV_trials[[3]] %>% 
+  mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S3)")))
+parameter_df <- barouch_SHV_trials[[4]] %>% 
+  mutate(name_f = fct_inorder(paste(str_remove(name_f, " \\(S\\d\\)"), "(S3)")))
 
 trajectory_record_final_cut <- trajectory_record_final[trajectory_record_final$id <= 20,]
 
@@ -579,18 +622,20 @@ m2_shiv <- ggplot(final_df_data, aes(x = peak, y = final)) + facet_wrap(~ name_f
   geom_point(data=filter(final_df_data, t_reb == Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", fill="lightgray") +
   geom_point(data=filter(final_df_data, t_reb != Inf), size=2.7, alpha=.55, shape=21, stroke=0.15, color="lightgray", aes(fill = log10(t_reb))) + scale_fill_distiller(name="Rebound\ntime", palette = "Spectral", direction=1, trans = trim_tails(range = c(log10(3),log10(365))), limits=c(log10(3), log10(365)), breaks=c(log10(3), log10(7), log10(30), log10(90), log10(365)), labels=c("3 days", "1 week", "1 month", "3 months", "1 year"))+
   theme_bw() +  
-  xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 6.5), ylim=c(-2.5, 6.5)) + 
-  geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
-  geom_text(x= 5, y = 0, aes(label = quad_2), data=quad_df, color='black') + geom_text(x= -1.5, y = 0, aes(label = quad_3), data=quad_df, color='black') + 
-  scale_x_continuous(breaks=c(-2, 0, 2, 4, 6), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}))) +
-  scale_y_continuous(breaks=c(-2, 0, 2, 4, 6), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}))) +
+  xlab("Peak viral load (copies/mL)") + ylab("Set point viral load (copies/mL)") + coord_cartesian(xlim=c(-2.5, 8), ylim=c(-2.5, 8)) + 
+  geom_vline(xintercept = VL_cutoff, linetype='dashed') + geom_hline(yintercept = VL_cutoff, linetype='dashed') + 
+  geom_text(x= 5, y = 6, aes(label = quad_1), data=quad_df, color='black') + 
+  geom_text(x= 5, y = -1, aes(label = quad_2), data=quad_df, color='black') + 
+  geom_text(x= -1.5, y = -1, aes(label = quad_3), data=quad_df, color='black') + 
+  scale_x_continuous(breaks=c(-2, 0, 2, 4, 6, 8), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}), expression(10^{8}))) +
+  scale_y_continuous(breaks=c(-2, 0, 2, 4, 6, 8), labels=c(expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}), expression(10^{8}))) +
   theme(strip.background = element_blank(),
         panel.border = element_rect(colour = "black"), aspect.ratio=1) 
 #scale_x_continuous(breaks=c(0, 2, 4, 6), labels=c(0, 2, 4, 6)) + scale_y_continuous(breaks=c(0, 2, 4, 6), labels=c(0, 2, 4, 6))
 
 show(m2_shiv)
 
-ggsave(here("paper_figures", "figure_S13.pdf"), plot=m2_shiv, width=20, height=20, unit='cm')
+ggsave(here("paper_figures", "figure_S13.pdf"), plot=m2_shiv, width=20, height=15, unit='cm')
 # ggsave("macaque_shiv_predictions_scatter_6_10_19.pdf", plot=m2_shiv, width=20, height=20, unit='cm')
 
 
@@ -602,7 +647,8 @@ m3_shiv <-  ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x
   theme_bw() +  
   xlab("Time after ART stop (days)") + ylab("Viral load (copies/mL)") + coord_cartesian(xlim=c(0, 120)) + #ylim=c(-2.5, 8)
   geom_hline(yintercept = log10(50), linetype="dashed") + 
-  scale_y_continuous(breaks=c(-4, -2, 0, 2, 4, 6, 8), labels=c(expression(10^{-4}), expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}),  expression(10^{8}))) +
+  scale_y_continuous(breaks=c(-4, -2, 0, 2, 4, 6, 8), labels=c(expression(10^{-4}), expression(10^{-2}), expression(10^{0}), expression(10^{2}), expression(10^{4}), expression(10^{6}),  expression(10^{8})),
+                     limits = c(-4,8)) +
   #scale_x_continuous(breaks=c(0, 20, 40, 60, 80, 100, 120)) +
   theme(strip.background = element_blank(),
         panel.border = element_rect(colour = "black"), aspect.ratio=1) 
@@ -612,15 +658,160 @@ m3_shiv <-  ggplot(trajectory_record_final_cut , aes(group = id, color=final,  x
 
 show(m3_shiv)
 
-ggsave(here("paper_figures", "figure_S12.pdf"), plot=m3_shiv, width=20, height=20, unit='cm')
+ggsave(here("paper_figures", "figure_S12.pdf"), plot=m3_shiv, width=20, height=15, unit='cm')
 # ggsave("macaque_shiv_example_simulations_6_10_19.pdf", plot=m3_shiv, width=20, height=20, unit='cm')
 
 
 ######### END SHIV ###########
 
 
+## Differences in establishing long-term control
+setpoint_df <- final_df_data %>% mutate(id = rep(1:200, nrow(.)/200)) %>% 
+  select(id, final, name)  %>% 
+  pivot_wider(values_from = final, names_from = name) %>% 
+  mutate(control = case_when(tlr7_vac_barouch_SIV > VL_cutoff & antibody_tlr7_barouch_SHIV > VL_cutoff ~ "both fail",
+                             tlr7_vac_barouch_SIV < VL_cutoff & antibody_tlr7_barouch_SHIV > VL_cutoff ~ "ab fails",
+                             tlr7_vac_barouch_SIV < VL_cutoff & antibody_tlr7_barouch_SHIV < VL_cutoff ~ "both succeed",
+                             tlr7_vac_barouch_SIV > VL_cutoff & antibody_tlr7_barouch_SHIV < VL_cutoff ~ "vaccine fails"))
+
+setpoint_df %>% 
+  ggplot(aes(tlr7_vac_barouch_SIV, antibody_tlr7_barouch_SHIV, color = control)) + geom_point() + geom_abline() +
+  ggtitle("Setpoint viremia between treatment controls") +
+  geom_hline(yintercept = VL_cutoff, lty = "dashed") + 
+  geom_vline(xintercept = VL_cutoff, lty = "dashed") +
+  coord_cartesian(xlim = c(-4,4.5), ylim = c(-4,4.5)) 
 
 
+peak_df <- final_df_data %>% mutate(id = rep(1:200, nrow(.)/200)) %>% 
+  select(id, peak, name)  %>% 
+  pivot_wider(values_from = peak, names_from = name) %>% 
+  mutate(rebound = case_when(tlr7_vac_barouch_SIV > VL_cutoff & antibody_tlr7_barouch_SHIV > VL_cutoff ~ "both fail",
+                             tlr7_vac_barouch_SIV < VL_cutoff & antibody_tlr7_barouch_SHIV > VL_cutoff ~ "ab fails",
+                             tlr7_vac_barouch_SIV < VL_cutoff & antibody_tlr7_barouch_SHIV < VL_cutoff ~ "both succeed",
+                             tlr7_vac_barouch_SIV > VL_cutoff & antibody_tlr7_barouch_SHIV < VL_cutoff ~ "vaccine fails"))
+
+peak_df %>% 
+  left_join(distinct(setpoint_df, id, control)) %>% 
+  filter(!is.na(rebound)) %>% 
+  ggplot(aes(tlr7_vac_barouch_SIV, antibody_tlr7_barouch_SHIV, color = rebound, shape = control)) + geom_point() + geom_abline() +
+  ggtitle("Peak viremia between treatment rebounds") +
+  geom_hline(yintercept = VL_cutoff, lty = "dashed") + 
+  geom_vline(xintercept = VL_cutoff, lty = "dashed") +
+  coord_cartesian(xlim = c(-4,6), ylim = c(-4,6)) + 
+  labs(color = "preventing rebound", shape = "durable control")
+
+## Compare trajectories for preventing rebound
+
+# Two people that rebound on Ab but not vaccine, but the vaccine controls the setpoint very low
+trajectory_record_final %>% 
+  left_join(distinct(peak_df, id, rebound)) %>%  
+  filter(rebound == "vaccine works", name %in% c("tlr7_vac_barouch_SIV", "antibody_tlr7_barouch_SHIV", "baseline")) %>% 
+  ggplot(aes(time, V/log(10), color = name_f)) + 
+  geom_line() + 
+  facet_wrap(~id) + 
+  geom_hline(yintercept = log10(50), lty = "dashed") +
+  ggtitle("Vaccine and not Antibody prevents rebound")
+
+## Compare trajectories with durable control
+trajectory_record_final %>% 
+  left_join(distinct(setpoint_df, id, control)) %>% 
+  filter(control == "vaccine works", name %in% c("tlr7_vac_barouch_SIV", "antibody_tlr7_barouch_SHIV", "baseline")) %>% 
+  ggplot(aes(time, V/log(10), color = name_f)) + 
+  geom_line() + 
+  facet_wrap(~id) + 
+  geom_hline(yintercept = log10(50), lty = "dashed") +
+  ggtitle("Vaccine, but not Antibody, establishes viral control")
+
+trajectory_record_final %>% 
+  left_join(distinct(setpoint_df, id, control)) %>% 
+  filter(control == "both fail", name %in% c("tlr7_vac_barouch_SIV", "antibody_tlr7_barouch_SHIV", "baseline")) %>% 
+  ggplot(aes(time, V/log(10), color = name_f)) + 
+  geom_line() + 
+  facet_wrap(~id) + 
+  geom_hline(yintercept = log10(50), lty = "dashed") +
+  ggtitle("Both therapies fail to establish control")
+
+trajectory_record_final %>% 
+  left_join(distinct(setpoint_df, id, control)) %>% 
+  filter(control == "ab works", name %in% c("tlr7_vac_barouch_SIV", "antibody_tlr7_barouch_SHIV", "baseline")) %>% 
+  ggplot(aes(time, V/log(10), color = name_f)) + 
+  geom_line() + 
+  facet_wrap(~id) + 
+  geom_hline(yintercept = log10(50), lty = "dashed") +
+  ggtitle("Antibody, but not Vaccine, establishes viral control")
 
 
+## Compare characeristics of rebound kinetics by treatment success
+
+plot_df <- parameter_df %>% 
+  filter(name == "baseline") %>% 
+  mutate(exp(across(where(is.numeric)))) %>% 
+  mutate(id = 1:nrow(.)) %>% 
+  left_join(distinct(peak_df, id, rebound)) %>%
+  left_join(distinct(setpoint_df, id, control)) %>% 
+  filter(!is.na(rebound)) %>% 
+  mutate(control = factor(control, levels = c("both fail", "vaccine fails", "ab fails", "both succeed")),
+         rebound = factor(rebound, levels = c("both fail", "vaccine fails", "ab fails", "both succeed"))) 
+
+plot_df <- left_join(
+  plot_df,
+  final_df_data %>% filter(name == "baseline") %>% mutate(id = 1:nrow(.)) %>% select(r,  V_ART,  p_surv, id)
+) %>% 
+  select(id, name, name_f, rebound, control, everything())
+
+plot_df <- plot_df %>% mutate(
+  T_ART = lambda/dTar,
+  I_ART = fixed$I1_human / (ta * fixed$dI_human),
+  # V_ART = I_ART*k/c,
+  P_ART = m / (dP - p * (1 - f) * V_ART / (V_ART + NPs)),
+  E_ART = p*f*P_ART * V_ART / (dE * (V_ART + NPs))
+) 
+
+
+plot_df %>% 
+  pivot_longer(!c(id, name,name_f,rebound,control), names_to = "parameter") %>% 
+  mutate(value = ifelse(parameter %in% c("r", "p_surv") , value, log10(value)),
+         parameter = fct_inorder(parameter)) %>% 
+  ggplot(aes(value, control, fill = control, color = control)) + 
+  geom_violin(alpha = 0.25, scale = "width") +
+  geom_beeswarm(alpha = 0.75) +
+  geom_boxplot(width = 0.25, outlier.shape = NA, fill = NA, color = "black", aes(group = control), alpha = 0.75) +
+  facet_wrap(~parameter, scales = "free_x") 
+
+plot_df %>% 
+  ggpairs(columns = 1:6, mapping = aes(color = control)) +
+  theme_classic()
+
+### Look for all treatments, not just baseline
+
+temp_df <- left_join(
+  final_df_data %>% group_by(name) %>% mutate(id = 1:n()) %>% ungroup %>% 
+    mutate(control = final < VL_cutoff) ,
+  
+  parameter_df %>% 
+    mutate(exp(across(where(is.numeric)))) %>% 
+    group_by(name) %>% mutate(id = 1:n()) %>% ungroup
+) %>% 
+  mutate(
+    T_ART = lambda/dTar,
+    I_ART = fixed$I1_human / (ta * fixed$dI_human),
+    # V_ART = I_ART*k/c,
+    P_ART = m / (dP - p * (1 - f) * V_ART / (V_ART + NPs)),
+    E_ART = p*f*P_ART * V_ART / (dE * (V_ART + NPs)),
+    R0 = lambda * betas * k / ((1 + E_ART/N_E)*dTar*fixed$dI_human*c)*exp(-dTar*1)
+  ) 
+
+temp_df %>%
+  pivot_longer(!c(id, name, name_f, control, final, peak, t_reb), names_to = "parameter") %>% 
+  mutate(#value = ifelse(parameter %in% c("r", "p_surv") , value, log10(value)),
+    parameter = factor(parameter, levels = c("T_ART", "V_ART", "I_ART", "P_ART", "E_ART",
+                                             "r", "p_surv", "reactivation_time", "R0", "lambda",
+                                             "betas", "ta", "m", "p", "NPs"))) %>% 
+  filter(!is.na(control)) %>% 
+  ggplot(aes(value, control, fill = control, group = control)) + 
+  geom_violin(alpha = 0.5, scale = "width") + 
+  # geom_beeswarm() +
+  geom_boxplot(width = 0.5, fill = NA, outlier.shape = NA)  +
+  facet_wrap(~parameter, scales = "free_x") + 
+  scale_x_log10()
 
