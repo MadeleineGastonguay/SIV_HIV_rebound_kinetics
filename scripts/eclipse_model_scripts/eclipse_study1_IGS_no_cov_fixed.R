@@ -1,5 +1,6 @@
 # Load libraries
 library(here)
+library(RColorBrewer)
 
 # Source scripts for initializing monolix and functions to run the analysis
 source(here("scripts", "initialize_monolix.R"))
@@ -8,7 +9,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
@@ -94,6 +95,7 @@ regime1 <- tabestimates %>%
   filter(parameter == "omega_m", estimate < 3.5) %>% 
   pull(run)
 
+# 62% of runs fall in the regime of latent reservoir reduction (with worse BICc)
 length(regime1)
 
 plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color = regime1)
@@ -101,7 +103,270 @@ plot_bicc_v_estimate(tabestimates, remove_bicc_outliers = T, log10_x = F, color 
 plot_bicc_v_estimate(tabestimates %>% filter(run %in% regime1), remove_bicc_outliers = T, log10_x = F,
                      out_folder = out_folder, project_name = project_name, file_addendum = "_low_m")
 
-## Assess identifiability
+## Create figure showing difference in regimes: ####
+dual_regime<-tabestimates %>% 
+  mutate(regime = ifelse(run %in% regime1, "latent reservoir", "immune control")) %>% 
+  group_by(regime) %>% 
+  filter(bicc == min(bicc)) %>% 
+  ungroup()
+
+df <- merge(
+  dual_regime %>% 
+    filter(grepl("pop", parameter)) %>% 
+    mutate(parameter = gsub("_pop", "", parameter)) %>% 
+    select( parameter, mean = estimate, regime) %>% 
+    rbind(data.frame(parameter = rep(c("lambda", "p"), each = 2), 
+                     mean = rep(unname(fixed), each = 2 ),
+                     regime = c("latent reservoir", "immune control"))),
+  
+  dual_regime %>% 
+    filter(grepl("omega", parameter)) %>% 
+    mutate(parameter = gsub("omega_", "", parameter)) %>% 
+    select(parameter, sd = estimate, regime)
+) 
+
+density_data <- df %>%
+  group_by(parameter) %>%
+  group_modify(~ {
+    x_vals <- exp(seq((min(log(.x$mean) - 4*.x$sd)),
+                      (max(log(.x$mean) + 4*.x$sd)),
+                      length.out = 500))
+    do.call(rbind, lapply(1:nrow(.x), function(i) {
+      data.frame(
+        x = x_vals,
+        y = dnorm(log(x_vals), mean = log(.x$mean[i]), sd = .x$sd[i]),
+        regime = as.factor(.x$regime[i])
+      )
+    }))
+  }) %>%
+  ungroup()
+
+make_dual_regime_distribution_plot <- function(param, limits = NULL, breaks = NULL){
+  dual_regime_distribution_plot <- density_data %>%
+    left_join(dual_regime %>% distinct(run, bicc, regime) %>% mutate(run = factor(run))) %>%
+    filter(parameter == param) %>% 
+    mutate(x = case_when(#parameter == "betas" ~ x*1e-7, 
+      parameter == "NPs" ~ x*1e5,
+      .default = x),
+      parameter = factor(parameter, 
+                         levels =  c("lambda","betas", "ta", "m", "p", "NPs"),
+                         labels =  c("lambda","beta~'(x'~10^-7~')'", "t['a']", "m", "p", "N['p']"))) %>%
+    ggplot(aes(x = log10(x), y = y, color = regime, group = regime)) +
+    geom_line(linewidth = 1) +
+    facet_wrap(~parameter, scales = "free", ncol = 1, labeller = label_parsed, strip.position = "bottom") +
+    theme_minimal() + 
+    guides(color = guide_legend(position = "inside")) +
+    theme(axis.text.y = element_blank(), axis.title.y = element_blank(),
+          axis.ticks.y = element_blank(), panel.grid = element_blank(), axis.line.x = element_line(),
+          strip.text = element_text(size = 15), strip.placement = "outside",
+          legend.position.inside = c(0,1), legend.justification = c(0,1), legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12)) + 
+    scale_color_brewer(name = "Regime", palette = "Set1", labels = c("Immune\ncontrol", "Reduced\nreservoir")) +
+    labs(x = "")
+  
+  # Adjust limits:
+  if(param %in% c("lambda", "betas", "p")){
+    dual_regime_distribution_plot <- dual_regime_distribution_plot + 
+      scale_x_continuous(labels = function(breaks) 10^breaks, breaks = log10(breaks), limits = limits)
+  }else{
+    dual_regime_distribution_plot <- dual_regime_distribution_plot + 
+      scale_x_continuous(labels = scales::label_math(expr = 10^.x), breaks = log10(breaks), limits = limits)
+  }
+  
+  dual_regime_distribution_plot
+  
+}
+
+make_dual_regime_EBE_plot <- function(param, limits = NULL, breaks = NULL, log10 = FALSE, ...){
+  df <- indivParams %>% 
+    merge(distinct(dual_regime, run, regime)) %>% 
+    pivot_longer(c(lambda, betas, ta, NPs, p, m), names_to = "parameter", values_to = "EBE") %>% 
+    filter(parameter == param) %>% 
+    # mutate(EBE = ifelse(parameter == "NPs", EBE*1e5, ifelse(parameter == "betas", EBE*1e-7, EBE))) %>% 
+    mutate(EBE = ifelse(parameter == "NPs", EBE*1e5, EBE)) %>% 
+    select(id, parameter, EBE, regime) %>% 
+    pivot_wider(names_from = regime, values_from = EBE) %>% 
+    left_join(distinct(mutate(data, id = as.character(id)), id, tlr7)) %>% 
+    mutate(parameter = factor(parameter, levels = c("lambda", "betas", "ta", "m", "p", "NPs"),
+                              labels = c("lambda", "beta", "t['a']", "m", "p", "N['p']")))
+  
+  if(log10){
+    df <- df %>% mutate(`latent reservoir` = log10(`latent reservoir`), `immune control` = log10(`immune control`))
+  }
+  
+  # Axis labels:
+  param_label_x <- switch(param, 
+                          "lambda" = expression(atop(lambda*" EBE in reduced",  " reservoir regime")),
+                          "betas" = expression(atop(beta*" EBE in reduced",  " reservoir regime (x"*10^-7*")")),
+                          "ta" = expression(atop(t['a']*" EBE in reduced",  " reservoir regime")),
+                          "m" = expression(atop("m"*" EBE in reduced",  " reservoir regime")),
+                          "p" = expression(atop("p"*" EBE in reduced",  " reservoir regime")),
+                          "NPs" = expression(atop(N['p']*" EBE in reduced",  " reservoir regime"))
+  )
+  
+  param_label_y <- switch(param, 
+                          "lambda" = expression(atop(lambda*" EBE in immune",  "control regime")),
+                          "betas" = expression(atop(beta*" EBE in immune",  "control regime (x"*10^-7*")")),
+                          "ta" = expression(atop(t['a']*" EBE in immune",  "control regime")),
+                          "m" = expression(atop("m"*" EBE in immune",  "control regime")),
+                          "p" = expression(atop("p"*" EBE in immune",  "control regime")),
+                          "NPs" = expression(atop(N['p']*" EBE in immune",  "control regime"))
+  )
+  
+  dual_regime_EBE_plot <- df %>% ggplot(aes((`latent reservoir`), (`immune control`), color = factor(tlr7))) + 
+    geom_abline( lty = "dashed", alpha = 0.5) + 
+    geom_point(size = 3, alpha = 0.5) + 
+    ggrepel::geom_text_repel(data = . %>% filter(id %in% c(15, 19)),
+                             aes(label = id), min.segment.length = 0,
+                             show.legend = F, box.padding = 0.6) +
+    scale_color_manual(values = c("0" = "black", "1" = "#00A3D3"), labels = c("Control", "TLR7")) + 
+    theme_minimal() +
+    theme(legend.title = element_blank(), strip.text = element_text(size = 15)) + 
+    # labs(x = bquote(str_interp("${param_label} EBE in reduced reservoir regime")), y = bquote(str_interp("${param_label} EBE in immune control regime")))
+    labs(x = param_label_x, y = param_label_y)
+  
+  if(!log10){
+    dual_regime_EBE_plot + 
+      scale_x_continuous(limits = (limits), ...) + 
+      scale_y_continuous(limits = (limits), ...) 
+  }else{
+    if(log10(diff(limits)) > 2){
+      dual_regime_EBE_plot + 
+        scale_x_continuous(limits = log10(limits), labels = scales::label_math(expr = 10^.x), breaks = log10(breaks)) + 
+        scale_y_continuous(limits = log10(limits), labels = scales::label_math(expr = 10^.x), breaks = log10(breaks))  
+    }else{
+      dual_regime_EBE_plot + 
+        scale_x_continuous(limits = log10(limits), labels = function(breaks) 10^breaks, breaks = log10(breaks)) + 
+        scale_y_continuous(limits = log10(limits), labels = function(breaks) 10^breaks, breaks = log10(breaks))
+    }
+    
+  }
+  
+}
+
+dual_regime_EBE_plot <- make_dual_regime_EBE_plot("lambda", limits = c(90,400), log10 = F) + 
+  guides(color = guide_legend(position = "inside")) +
+  theme(legend.position.inside = c(0,1), legend.justification = c(-0.1,1)) +
+  make_dual_regime_EBE_plot("betas", limits = c(5,10), log10 = F) + 
+  theme(legend.position = "none") +
+  make_dual_regime_EBE_plot("ta", limits = c(0.1,100), log10 = T, breaks = c(0.1, 1, 10, 100)) + 
+  theme(legend.position = "none") +
+  make_dual_regime_EBE_plot("m", limits = 10^c(-2,6), log10 = T, breaks = 10^seq(-2,6,by=2)) + 
+  theme(legend.position = "none") +
+  make_dual_regime_EBE_plot("p", limits = c(2,4), log10 = F) + 
+  theme(legend.position = "none") +
+  make_dual_regime_EBE_plot("NPs", limits = 10^c(4.75,7.25), log10 = T, breaks = 10^seq(5,7))  + 
+  theme(legend.position = "none") +
+  plot_layout(ncol = 1) &
+  theme(#axis.text.x = element_text(size = 12, color = brewer.pal(2,"Set1")[2]),
+    #axis.text.y = element_text(size = 12, color = brewer.pal(2,"Set1")[1]),
+    axis.title.x = element_text(size = 12, color = brewer.pal(2,"Set1")[2]),
+    axis.title.y = element_text(size = 12, color = brewer.pal(2,"Set1")[1]))
+
+
+dual_regime_distribution_plot <- make_dual_regime_distribution_plot("lambda", breaks = (c(30, 100, 300, 1000))) + 
+  guides(color = guide_legend(position = "inside")) +
+  theme(legend.position.inside = c(0,1), legend.justification = c(0,1)) +
+  make_dual_regime_distribution_plot("betas", breaks = (c(5, 7, 10))) +
+  theme(legend.position = "none") +
+  make_dual_regime_distribution_plot("ta", breaks = 10^seq(-2,2)) +
+  theme(legend.position = "none") +
+  make_dual_regime_distribution_plot("m", breaks = 10^seq(-4,10,by=4)) +
+  theme(legend.position = "none") +
+  make_dual_regime_distribution_plot("p", breaks = (c(1, 3, 10))) +
+  theme(legend.position = "none") +
+  make_dual_regime_distribution_plot("NPs", breaks = 10^seq(3,9,by=2)) +
+  theme(legend.position = "none") +
+  plot_layout(ncol = 1) 
+
+
+
+
+non_rebound_fit <- indivFit %>% 
+  filter(id %in% c(15, 19)) %>% 
+  merge(distinct(dual_regime, run, regime)) %>% 
+  ggplot(aes(time, indivPred_mode)) + 
+  geom_hline(yintercept = 1.7, lty = "dashed", color = "gray") +
+  geom_point(aes(y = vl)) +
+  geom_line(linewidth = 1, aes(color = regime)) +
+  facet_wrap(~id) + 
+  scale_color_brewer(palette = "Set1", labels = c("Immune control regime", "Reduced reservoir regime")) +
+  labs(x = "Time after ART stop (days)", y = "Viral load\n(copies/ml)") + 
+  theme_minimal() +
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        strip.background = element_blank(), panel.grid = element_blank(),
+        plot.title = element_text(face = "bold"), legend.position = "none") + 
+  scale_y_continuous(labels = scales::label_math(expr = 10^.x), limits = c(-1,6)) 
+
+non_rebound_immune <- table_predictions %>% 
+  filter(id %in% c(15, 19)) %>% 
+  merge(distinct(dual_regime, run, regime)) %>% 
+  select(regime, id, time, contains("mode")) %>% 
+  ggplot(aes(time,log10( P_mode), color = regime, group = regime)) + 
+  geom_line(linewidth = 1) +
+  facet_wrap(~id) + 
+  scale_color_brewer(palette = "Set1", labels = c("Immune control regime", "Reduced reservoir regime")) +
+  labs(x = "Time after ART stop (days)", y = "Precursor\nImmune Cells") + 
+  theme_minimal() +
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        strip.background = element_blank(), panel.grid = element_blank(),
+        plot.title = element_text(face = "bold"), legend.position = "none") +
+  scale_y_continuous(labels = scales::label_math(expr = 10^.x), limits = c(2,9))
+
+bicc_plot_df <- tabestimates %>% 
+  filter(parameter != "a") %>% 
+  mutate(regime = ifelse(run %in% regime1, "latent reservoir", "immune control"),
+         parameter = factor(parameter, levels = c("lambda_pop", "betas_pop", "ta_pop","m_pop", "p_pop", "NPs_pop",
+                                                  "omega_lambda", "omega_betas", "omega_ta", "omega_m", "omega_NPs", "omega_p"),
+                            labels = c("lambda['pop']", "beta['pop']", "t['a, pop']", "m['pop']", "p['pop']", "N['p, pop']",
+                                       "Omega[lambda]", "Omega[beta]", "Omega['ta']", "Omega['m']", "Omega['NP']", "Omega['p']"))) 
+
+dual_regime_bicc <- bicc_plot_df %>% 
+  filter(parameter %in% c("Omega[lambda]", "Omega['p']")) %>% 
+  ggplot(aes(estimate, bicc, color = regime)) + 
+  
+  bicc_plot_df %>% 
+  filter(grepl("beta", parameter)) %>% 
+  ggplot(aes(estimate, bicc, color = regime)) + 
+  
+  bicc_plot_df %>% 
+  filter(parameter %in% c("Omega['ta']", "t['a, pop']")) %>% 
+  ggplot(aes(estimate, bicc, color = regime)) + 
+  
+  bicc_plot_df %>% 
+  filter(parameter %in% c("Omega['m']", "m['pop']")) %>% 
+  ggplot(aes(estimate, bicc, color = regime)) + 
+  
+  bicc_plot_df %>% 
+  filter(parameter %in% c("Omega['NP']", "N['p, pop']")) %>% 
+  ggplot(aes(estimate, bicc, color = regime)) +
+  
+  plot_layout(ncol = 1, guides = "collect") &
+  
+  
+  geom_point(alpha = 0.75, size = 3) & 
+  geom_point(data = . %>% group_by(regime) %>% filter(bicc == min(bicc)),
+             size = 6, shape = 23, color = "black", aes(fill = regime)) &
+  facet_wrap(~parameter, scales = "free_x", ncol = 2, labeller = "label_parsed", dir = "v", strip.position = "bottom") & 
+  scale_color_brewer(palette = "Set1") & 
+  scale_fill_brewer(palette = "Set1") & 
+  labs(y = "BICc") & 
+  theme_minimal() &
+  theme(legend.position = "none", strip.placement = "outside", axis.title.x = element_blank(), strip.text = element_text(size = 15))
+ 
+study1_regimes_plot <- ((dual_regime_bicc & theme(axis.text = element_text(size = 12), axis.title.y = element_text(size = 15)) | 
+                           dual_regime_distribution_plot & theme(axis.text.x = element_text(size = 12)) | 
+                           dual_regime_EBE_plot & theme(axis.text = element_text(size = 12), aspect.ratio = 1)) + plot_layout(width = c(2.5, 1.5,1))) / 
+  (non_rebound_fit + non_rebound_immune + plot_layout(ncol = 2) & 
+     theme(axis.text = element_text(size = 12), axis.title = element_text(size = 15), strip.text = element_text(size = 15)))+
+  plot_layout(ncol = 1, heights = c(5, 0.5)) +
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 20))
+
+ggsave(here("paper_figures", "study1_regimes.pdf"), study1_regimes_plot, width = 15, height = 20)
+
+
+## Assess identifiability ####
 correlate_estimates(tabestimates, remove_bicc_outliers = T,
                     out_folder = out_folder, project_name = project_name)
 compare_estimates(tabestimates, remove_bicc_outliers = T,
