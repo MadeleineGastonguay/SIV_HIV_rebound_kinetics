@@ -83,7 +83,7 @@ predefined_initialvalues %>%
 # Final model from SCM:
 # ab on beta and p, tlr7 on m
 alt_mod <- "final_model"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -186,7 +186,7 @@ dev.off()
 # AM1 #####
 # swap ab effect on p for Np 
 alt_mod <- "am1"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -286,117 +286,9 @@ table_predictions %>%
 dev.off()
 
 
-# AM2 #####
-# ab effect on lambda instead of beta
-alt_mod <- "am2"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
-project_name <- str_interp("IGS_${alt_mod}.mlxtran")
-saveProject(here(out_folder, project_name))
-# loadProject(here(out_folder, project_name))
-
-# Run convergence for narrower range of values
-parameter_results_am2 <- initial_guess_sampling(
-  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
-  set_variance = 1, record_shrinkage = T, fixed = fixed, 
-  predefined_initialvalues = predefined_initialvalues, 
-  record_pvals = TRUE, record_indiv_params = TRUE,
-  record_condition_number = TRUE, record_table = TRUE
-)
-
-
-for(name in names(parameter_results_am2)){
-  assign(name, parameter_results_am2[[name]])
-}
-
-save(list = names(parameter_results_am2),
-     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-# load( here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
-
-pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
-for(parameter in getPopulationParameterInformation()$name){
-  if(parameter %in% names(fixed)) next
-  print(parameter)
-  print(
-    parameter_plots(
-      parameter,
-      remove_bicc_outliers = F, 
-      remove_estimate_outliers = F,
-      NULL, tabestimates, tabiters,
-      phase, initialvalues
-    )
-  )
-}
-dev.off()
-
-
-
-plot_bicc_v_estimate(
-  tabestimates, log10_x = F,
-  out_folder = out_folder, project_name = project_name
-)
-
-correlate_estimates(tabestimates, 
-                    out_folder = out_folder, project_name = project_name)
-
-# still a strong correlation between beta and ta and m and ta
-correlate_estimates(tabestimates %>% filter(grepl("pop", parameter)))
-
-compare_estimates(tabestimates, 
-                  out_folder = out_folder, project_name = project_name)
-
-estimate_boxplots(tabestimates,
-                  out_folder = out_folder, project_name = project_name)
-
-
-table_predictions <- left_join(table_predictions, distinct(tabestimates, run, bicc))
-pdf(here(out_folder, gsub(".mlxtran", "", project_name), "table_predictions.pdf"), width = 10, height = 10)
-
-table_predictions %>% 
-  ggplot(aes(time, V_mode,  group = factor(run), color = bicc))  + 
-  geom_point(data = data, aes(time, 10^vl), inherit.aes = F, alpha = 0.5) +
-  geom_line(alpha = 0.5) +
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  color_bicc()
-
-table_predictions %>% 
-  ggplot(aes(time, P_mode,  group = factor(run), color = bicc))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  color_bicc()
-
-table_predictions %>% 
-  ggplot(aes(time, E_mode,  group = factor(run), color = bicc))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  color_bicc() 
-
-table_predictions %>% 
-  ggplot(aes(time, I_mode,  group = factor(run), color = bicc))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  color_bicc() 
-
-table_predictions %>% 
-  ggplot(aes(time, T_mode,  group = factor(run), color = bicc))  + 
-  geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
-  scale_y_log10() + 
-  color_bicc() 
-
-dev.off()
-
-
-
-
-
 # Compare results ####
 
-ams <- c("final_model","am1", "am2")
+ams <- c("final_model","am1")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL
@@ -443,11 +335,9 @@ all_tabestimates %>%
   count(best)
 
 # best            n
-#   1 final_model    28
-# 2 am1            11
-# 3 am2            11
-
-# The biological hypotheses are never the best
+# <fct>       <int>
+#   1 final_model    29
+# 2 am1            21
 
 ## out of 50 runs, the number of times each model was less than 2 BICc from the best model
 all_tabestimates %>% distinct(run, bicc, am, best) %>% 
@@ -461,9 +351,8 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
 
 # am          equal_to_best     n
 # <fct>       <lgl>         <int>
-#   1 final_model TRUE             43
-# 2 am1         TRUE             33
-# 3 am2         TRUE             31
+#   1 final_model TRUE             46
+# 2 am1         TRUE             39
 
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
@@ -485,8 +374,7 @@ all_tabestimates_bicc %>%
 
 
 # How frequently are the treatment effects significant?
-# ab effect on lambda is significant less frequently than ab effect on beta
-
+# ab effect on p is significant less frequently than ab on Np
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
   ggplot(aes(am, log10(padj), color = padj < 0.05)) + 

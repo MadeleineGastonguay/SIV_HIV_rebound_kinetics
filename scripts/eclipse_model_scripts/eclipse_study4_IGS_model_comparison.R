@@ -78,9 +78,72 @@ predefined_initialvalues %>%
 
 # Run IGS #####
 
+# Final model from SCM #####
+alt_mod <- "final_model"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+project_name <- str_interp("IGS_${alt_mod}.mlxtran")
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_final_model <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = TRUE, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE, 
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_final_model)){
+  assign(name, parameter_results_final_model[[name]])
+}
+
+save(list = names(parameter_results_final_model),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+plot_vs_rses(tabestimates, out_folder, project_name)
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+
+
+
 # AM1 #####
 alt_mod <- "am1"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
@@ -140,15 +203,16 @@ estimate_boxplots(tabestimates,
 
 
 
-# AM1.1 #####
-alt_mod <- "am1.1"
-loadProject(here("results_eclipse", study, "SCM_new_fixed", str_interp("${alt_mod}.mlxtran")))
+
+# AM3 #####
+alt_mod <- "am3"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
 project_name <- str_interp("IGS_${alt_mod}.mlxtran")
 saveProject(here(out_folder, project_name))
 # loadProject(here(out_folder, project_name))
 
 # Run convergence for narrower range of values
-parameter_results_am1.1 <- initial_guess_sampling(
+parameter_results_am3 <- initial_guess_sampling(
   initialValue_ranges_narrow, log10 = NULL, nits = nits, 
   set_variance = 1, record_shrinkage = TRUE, fixed = fixed, 
   predefined_initialvalues = predefined_initialvalues, 
@@ -157,11 +221,204 @@ parameter_results_am1.1 <- initial_guess_sampling(
 )
 
 
-for(name in names(parameter_results_am1.1)){
-  assign(name, parameter_results_am1.1[[name]])
+for(name in names(parameter_results_am3)){
+  assign(name, parameter_results_am3[[name]])
 }
 
-save(list = names(parameter_results_am1.1),
+save(list = names(parameter_results_am3),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+plot_vs_rses(tabestimates, out_folder, project_name)
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+# AM3.1 #####
+alt_mod <- "am3.1"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+project_name <- str_interp("IGS_${alt_mod}.mlxtran")
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_am3.1 <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = TRUE, fixed = fixed, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE, 
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_am3.1)){
+  assign(name, parameter_results_am3.1[[name]])
+}
+
+save(list = names(parameter_results_am3.1),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+plot_vs_rses(tabestimates, out_folder, project_name)
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+
+
+
+# AM3 without fixed parameters #####
+alt_mod <- "am3"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+
+project_name <- str_interp("IGS_${alt_mod}_no_fixed.mlxtran")
+saveProject(here(out_folder, project_name))
+popparam <- getPopulationParameterInformation()
+popparam$method <- "MLE"
+setPopulationParameterInformation(popparam)
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_am3_no_fixed <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = TRUE, fixed = NULL, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE, 
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_am3_no_fixed)){
+  assign(name, parameter_results_am3_no_fixed[[name]])
+}
+
+save(list = names(parameter_results_am3_no_fixed),
+     file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+# load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
+
+pdf(here(out_folder, gsub(".mlxtran", "", project_name), "parameter_plots.pdf"), width = 7, height = 8)
+for(parameter in getPopulationParameterInformation()$name){
+  if(parameter %in% names(fixed)) next
+  print(parameter)
+  print(
+    parameter_plots(
+      parameter,
+      remove_bicc_outliers = F, 
+      remove_estimate_outliers = F,
+      NULL, tabestimates, tabiters,
+      phase, initialvalues
+    )
+  )
+}
+dev.off()
+
+plot_vs_rses(tabestimates, out_folder, project_name)
+
+plot_bicc_v_estimate(
+  tabestimates, log10_x = F,
+  out_folder = out_folder, project_name = project_name
+)
+
+
+correlate_estimates(tabestimates, 
+                    out_folder = out_folder, project_name = project_name)
+
+compare_estimates(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+estimate_boxplots(tabestimates, 
+                  out_folder = out_folder, project_name = project_name)
+
+
+# AM3.1 without fixed parameters #####
+alt_mod <- "am3.1"
+loadProject(here("results_eclipse", study, "SCM", str_interp("${alt_mod}.mlxtran")))
+
+project_name <- str_interp("IGS_${alt_mod}_no_fixed.mlxtran")
+saveProject(here(out_folder, project_name))
+popparam <- getPopulationParameterInformation()
+popparam$method <- "MLE"
+setPopulationParameterInformation(popparam)
+saveProject(here(out_folder, project_name))
+# loadProject(here(out_folder, project_name))
+
+# Run convergence for narrower range of values
+parameter_results_am3.1_no_fixed <- initial_guess_sampling(
+  initialValue_ranges_narrow, log10 = NULL, nits = nits, 
+  set_variance = 1, record_shrinkage = TRUE, fixed = NULL, 
+  predefined_initialvalues = predefined_initialvalues, 
+  record_pvals = TRUE, record_indiv_params = TRUE, 
+  record_condition_number = TRUE, record_table = TRUE
+)
+
+
+for(name in names(parameter_results_am3.1_no_fixed)){
+  assign(name, parameter_results_am3.1_no_fixed[[name]])
+}
+
+save(list = names(parameter_results_am3.1_no_fixed),
      file = here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
 
 # load(here(out_folder, gsub(".mlxtran", "", project_name), "IGS.RData"))
@@ -204,7 +461,9 @@ estimate_boxplots(tabestimates,
 
 # Compare results ####
 
-ams <- c("am1", "am1.1")
+ams <- c("final_model", "am1", "am3", "am3.1")#, "am3_no_fixed", "am3.1_no_fixed")
+
+ams <- c("am3_no_fixed", "am3.1_no_fixed")
 
 all_tabestimates <- NULL
 all_initialvalues <- NULL
@@ -246,14 +505,14 @@ all_tabestimates %>% select(parameter, am, estimate, best, run)  %>%
 
 # Compare model performances ####
 
-## out of 100 runs, the number of times each model was the best according to BICc
+## out of 50 runs, the number of times each model was the best according to BICc
 all_tabestimates %>% 
   distinct(run, best) %>% 
   count(best)
 
-# best      n
-# am3      40
-# am6.3    60
+# best            n
+# <fct>       <int>
+#   1 final_model    50
 
 
 ## out of 100 runs, the number of times each model was less than 2 BICc from the best model
@@ -266,22 +525,15 @@ all_tabestimates %>% distinct(run, bicc, am, best) %>%
   filter(equal_to_best) %>% 
   count(am, equal_to_best) 
 
-# am    equal_to_best     n
-# <fct> <lgl>         <int>
-#   1 am3   TRUE             78
-# 2 am4   TRUE              1
-# 3 am6   TRUE              1
-# 4 am6.3 TRUE             92
+#  am          equal_to_best     n
+# <fct>       <lgl>         <int>
+#   1 final_model TRUE             50
 
-## out of 100 runs, AM3 significantly out-performed only AM6.3 8 times
-all_tabestimates %>% distinct(run, bicc, am, best) %>% 
-  pivot_wider(names_from = am, values_from = bicc) %>% 
-  count(am6.3 > (am3 + 2))
-
-# `am6.3 > (am3 + 2)`     n
-# <lgl>               <int>
-#   1 FALSE                  92
-# 2 TRUE                    8
+# ## out of 100 runs, AM3 significantly out-performed only AM6.3 8 times
+# all_tabestimates %>% distinct(run, bicc, am, best) %>% 
+#   pivot_wider(names_from = am, values_from = bicc) %>% 
+#   count(am6.3 > (am3 + 2))
+# 
 
 all_tabestimates_bicc <- all_tabestimates %>% distinct(run, best, am, ofv, bicc)
 
@@ -302,8 +554,8 @@ all_tabestimates_bicc %>%
 
 # Look at significance of treatment effects ####
 
-# tlr7*vac on ta is significant half the time
-# 
+# IN am1, tlr7*Ab on p is never signficiant and tlr7*vac on p is rarely signficiant
+# In bigger models, ta effect is more significant than in small models
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
   ggplot(aes(am, log10(padj), color = padj >= 0.05)) + 
@@ -313,21 +565,18 @@ all_pvals %>%
   scale_color_manual(values = c("black", "gray")) + 
   theme(legend.position = "none")
 
-# Vaccine on lambda is signficant about 80% of cases
-# vaccine effect on m is signficant in ~50% of cases
-# vaccine effect on p is significant less than 50% of cases
-# tlr7*vac on ta is signifcant ~50% of cases
+# TLR7*AB on beta is signifcant ~50% but TLR7*AB on lambda is signficant >80%
+# TLR7*VAC on beta is significant ~80% even though it doesnt make sense
 all_pvals %>% 
   mutate(padj = p.adjust(p.value, method = "fdr")) %>% 
-  filter(!parameter %in% c("beta_NPs_vac_1", "beta_NPs_intTLR7VAC_1", "beta_ta_vac_1")) %>% 
+  filter(!parameter %in% c("beta_NPs_intTLR7AB_1", "beta_NPs_intTLR7VAC_1")) %>% 
   group_by(parameter, am) %>% 
-  count(significant = padj < 0.05) %>% 
+  count(significant = padj < 0.05) %>%
+  mutate(percent = n/50*100) %>% 
   filter(significant) %>% view
 
 
 # Look at size of random effects for each model ####
-# 6.1 and 5 have bigger RE on m (they dont have an m or lambda or p effet)
-
 all_tabestimates %>% filter(grepl("omega", parameter)) %>% 
   mutate(parameter = factor(parameter, levels = paste0("omega_", c("lambda", "betas", "ta", "NPs", "p", "m")))) %>% 
   ggplot(aes(am, exp(estimate))) + 
@@ -356,7 +605,7 @@ all_tabestimates %>%
   left_join(all_condition_numbers) %>% 
   group_by(am, run) %>% 
   # Remove am1 becuase it is overfit and am6+ since they have tlr7*vac on ta
-  filter(!am %in% c("am1", "am6", "am6.3", "am6.1")) %>% 
+  # filter(!am %in% c("am1", "am6", "am6.3", "am6.1")) %>% 
   mutate(n_covar = sum(grepl("beta_", parameter)), 
          lambda_effect = any(grepl("beta_lambda", parameter))) %>% 
   ggplot(aes(condition_number, bicc, color = am, shape = factor(n_covar))) + 

@@ -353,59 +353,71 @@ p_profile %>% filter(bicc == min(bicc))
 # Visualize Profile Likelihood results ####
 ## Lambda
 lp <- lambda_profile %>% 
-  filter(parameter == "m_pop") %>% 
-  # distinct(lambda_pop, bicc) %>% 
-  ggplot(aes(lambda_pop, bicc, color = estimate > 70)) + 
-  geom_point() + 
-  labs(color = "m_pop > 70") 
+  ggplot(aes(lambda_pop, bicc)) + 
+  geom_point() +
+  # scale_x_log10() + 
+  annotate(geom = "rect", 
+           xmin = column_to_rownames(initialValue_ranges_narrow, "parameter")["lambda_pop", "min"], 
+           xmax = column_to_rownames(initialValue_ranges_narrow, "parameter")["lambda_pop", "max"],
+           ymin = -Inf, ymax = Inf, color = "gray", alpha = 0.25)
 
-# Best lambda is 235
+# Best lambda is 60
 lambda_profile %>% filter(bicc == min(bicc))
 
-# Filter out big m range
-lambda_profile %>% 
-  filter(estimate <= 50, parameter == "m_pop") %>% 
-  # distinct(lambda_pop, bicc) %>%
-  ggplot(aes(lambda_pop, bicc)) + 
-  geom_point()
+# There is clearly a minimum to the profile likelihood. When I do the narrow parameter search, I am using 
+# initial values around this minimum (good initial guesses) without very large random effects, but
+# I am still getting lots of variability in the estimated lambda value and a strong correlation with beta!
 
-# Best lambda is 400
-lambda_profile %>% filter(estimate <= 50, parameter == "m_pop") %>%  filter(bicc == min(bicc))
+lambda_profile %>% 
+  filter(parameter %in% c("betas_pop", "m_pop", 'ta_pop')) %>% 
+  ggplot(aes(lambda_pop, estimate)) + 
+  geom_point() +
+  facet_wrap(~parameter, scales = "free_y")
+
 
 ## p
 pp <- p_profile %>% 
-  filter(parameter == "m_pop") %>% 
-  # distinct(p_pop, bicc) %>%
-  ggplot(aes(p_pop, bicc, color = estimate > 70)) + 
+  ggplot(aes(p_pop, bicc)) + 
   geom_point() +
-  labs(color = "m_pop > 70")
+  # scale_x_log10() + 
+  annotate(geom = "rect", 
+           xmin = column_to_rownames(initialValue_ranges_narrow, "parameter")["p_pop", "min"], 
+           xmax = column_to_rownames(initialValue_ranges_narrow, "parameter")["p_pop", "max"],
+           ymin = -Inf, ymax = Inf, color = "gray", alpha = 0.25)
 
-# Best p is 3.7
+# Best p is 0.9
 p_profile %>% filter(bicc == min(bicc))
 
-# Filter out big m range
-p_profile %>% 
-  filter(estimate <= 60, parameter == "m_pop") %>%
-  distinct(p_pop, bicc) %>%
-  ggplot(aes(p_pop, bicc)) + 
-  geom_point() 
+# There is clearly a minimum to the profile likelihood. When I do the narrow parameter search, I am using 
+# initial values around this minimum (good initial guesses) without very large random effects, but
+# I am still getting lots of variability in the estimated p value and a strong correlation with Np!
 
-# Best p is 3
-p_profile %>% filter(estimate <= 60, parameter == "m_pop") %>% filter(bicc == min(bicc))
+p_profile %>% 
+  filter(parameter %in% c("NPs_pop", "m_pop")) %>% 
+  ggplot(aes(p_pop, estimate)) + 
+  geom_point() + 
+  facet_wrap(~parameter, scales = "free_y")
 
 
 ## m
-# The likelihood is very flat
 mp <- m_profile %>%
-  distinct(m_pop, bicc) %>%
-  ggplot(aes(m_pop, bicc, color = m_pop < 70)) + 
-  geom_point() + 
-  annotate(geom = "rect", xmin = -Inf, xmax = Inf, ymin = min(m_profile$bicc), ymax = min(m_profile$bicc) + 2, alpha = 0.25) + 
-  labs(color = "m_pop > 70")
+  ggplot(aes(m_pop, bicc)) + 
+  geom_point() +
+  # scale_x_log10() + 
+  annotate(geom = "rect", 
+           xmin = column_to_rownames(initialValue_ranges_narrow, "parameter")["m_pop", "min"], 
+           xmax = column_to_rownames(initialValue_ranges_narrow, "parameter")["m_pop", "max"],
+           ymin = -Inf, ymax = Inf, color = "gray", alpha = 0.25)
 
-lp + geom_smooth(data = . %>% filter(estimate < 70), show.legend = F) +
-  pp + geom_smooth(data = . %>% filter(estimate < 70), show.legend = F) +
-  mp + #geom_smooth() +
-  plot_layout(guides = "collect", axis_titles = "collect_y") & ylim(c(430,465)) &
-  plot_annotation(title = "Profile Likelihood Results From Study 1 Animals") & 
+m_profile %>% 
+  filter(parameter %in% c("NPs_pop", "p_pop", "lambda_pop")) %>% 
+  ggplot(aes(m_pop, estimate)) + 
+  geom_point() + 
+  facet_wrap(~parameter, scales = "free_y")
+
+
+lp + geom_smooth( show.legend = F) + #scale_x_log10() +
+  pp + geom_smooth( show.legend = F) +
+  mp + geom_smooth(show.legend = F) + #scale_x_log10() +
+  plot_layout(guides = "collect", axis_titles = "collect_y") & ylim(c(563,590)) &
   theme(plot.title = element_text(hjust = 0.5))

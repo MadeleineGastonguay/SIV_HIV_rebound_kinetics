@@ -263,6 +263,7 @@ rbind(log10_tabestimates %>% mutate(a = "log10"),
   scale_x_log10() +
   geom_vline(xintercept = 200) +
   geom_vline(xintercept = 3000) +
+  geom_vline(xintercept = 500, lty = "dashed") +
   geom_smooth(color = "black")
 
 # Find range of p for profile likelihood:
@@ -359,6 +360,10 @@ if(RERUN){
   lambda_profile <- read_csv( here(out_folder, "lambda_profile_likelihood.csv"))
   p_profile <- read_csv( here(out_folder, "p_profile_likelihood.csv"))
   m_profile <- read_csv( here(out_folder, "m_profile_likelihood.csv"))
+  
+  lambda_profile_table <- read_csv(here(out_folder, "lambda_profile_likelihood_table.csv"))
+  p_profile_table <- read_csv(here(out_folder, "p_profile_likelihood_table.csv"))
+  m_profile_table <- read_csv(here(out_folder, "m_profile_likelihood_table.csv"))
 }
 
 lambda_profile %>% filter(bicc == min(bicc))
@@ -369,22 +374,13 @@ p_profile %>% filter(bicc == min(bicc))
 lp <- lambda_profile %>% 
   filter(parameter == "m_pop") %>% 
   # distinct(lambda_pop, bicc) %>% 
-  ggplot(aes(lambda_pop, bicc, color = estimate > 70)) + 
-  geom_point() + 
-  labs(color = "m_pop > 70") 
+  ggplot(aes(lambda_pop, bicc, color = estimate)) + 
+  geom_point() +
+  labs(color = "m_pop")
 
-# Best lambda is 235
+# Best lambda is 550
 lambda_profile %>% filter(bicc == min(bicc))
 
-# Filter out big m range
-lambda_profile %>% 
-  filter(estimate <= 50, parameter == "m_pop") %>% 
-  # distinct(lambda_pop, bicc) %>%
-  ggplot(aes(lambda_pop, bicc)) + 
-  geom_point()
-
-# Best lambda is 400
-lambda_profile %>% filter(estimate <= 50, parameter == "m_pop") %>%  filter(bicc == min(bicc))
 
 ## p
 pp <- p_profile %>% 
@@ -412,10 +408,9 @@ p_profile %>% filter(estimate <= 60, parameter == "m_pop") %>% filter(bicc == mi
 # The likelihood is very flat
 mp <- m_profile %>%
   distinct(m_pop, bicc) %>%
-  ggplot(aes(m_pop, bicc, color = m_pop < 70)) + 
+  ggplot(aes(m_pop, bicc)) + 
   geom_point() + 
-  annotate(geom = "rect", xmin = -Inf, xmax = Inf, ymin = min(m_profile$bicc), ymax = min(m_profile$bicc) + 2, alpha = 0.25) + 
-  labs(color = "m_pop > 70")
+  annotate(geom = "rect", xmin = -Inf, xmax = Inf, ymin = min(m_profile$bicc), ymax = min(m_profile$bicc) + 2, alpha = 0.25) 
 
 lp + geom_smooth(data = . %>% filter(estimate < 70), show.legend = F) +
   pp + geom_smooth(data = . %>% filter(estimate < 70), show.legend = F) +
@@ -423,3 +418,63 @@ lp + geom_smooth(data = . %>% filter(estimate < 70), show.legend = F) +
   plot_layout(guides = "collect", axis_titles = "collect_y") & ylim(c(430,465)) &
   plot_annotation(title = "Profile Likelihood Results From Study 1 Animals") & 
   theme(plot.title = element_text(hjust = 0.5))
+
+## Look at predictions for animal 24:
+
+lambda_profile_table %>% filter(id == 24) %>% 
+  ggplot(aes(time, log10(V_mode), color = lambda, group = factor(lambda))) + 
+  geom_line() + 
+  geom_point(data = data %>% filter(id == 24), aes(time, vl), inherit.aes = F)
+
+p_profile_table %>% filter(id == 24) %>% 
+  ggplot(aes(time, log10(V_mode), color = p, group = factor(p))) + 
+  geom_line() + 
+  geom_point(data = data %>% filter(id == 24), aes(time, vl), inherit.aes = F)
+
+# Smaller values of m allow the peak to be better captured
+m_profile_table %>% filter(id == 24) %>% 
+  ggplot(aes(time, log10(V_mode), color = m, group = factor(m))) + 
+  geom_line() + 
+  geom_point(data = data %>% filter(id == 24), aes(time, vl), inherit.aes = F)
+
+m_profile_table %>% filter(id == 24) %>% 
+  left_join(distinct(m_profile, m_pop, bicc)) %>% 
+  ggplot(aes(time, log10(V_mode), color = bicc, group = factor(m))) + 
+  geom_line() + 
+  geom_point(data = data %>% filter(id == 24), aes(time, vl), inherit.aes = F) + 
+  color_bicc()
+
+rbind(m_profile_table %>% left_join(distinct(m_profile, m_pop, bicc)) %>% select(-m_pop) , 
+      lambda_profile_table %>% left_join(distinct(lambda_profile, lambda_pop, bicc)) %>% select(-lambda_pop),
+      p_profile_table %>% left_join(distinct(p_profile, p_pop, bicc)) %>% select(-p_pop)) %>% 
+  filter(bicc <= 810) %>% 
+  ggplot(aes(lambda, m, color = bicc)) + 
+  geom_point() + 
+  facet_wrap(~id) + 
+  scale_x_log10() + scale_y_log10() + 
+  color_bicc()
+
+
+rbind(m_profile %>% filter(parameter == "lambda_pop") %>% rename(lambda_pop = estimate) %>% mutate(shape = "m"),
+      lambda_profile %>% filter(parameter == "m_pop") %>% rename(m_pop = estimate) %>% mutate(shape = "lambda"),
+      merge(p_profile %>% filter(parameter == "m_pop") %>% rename(m_pop = estimate) %>% select(-parameter, -rses),
+      p_profile %>% filter(parameter == "lambda_pop") %>% rename(lambda_pop = estimate) %>% select(-parameter, -rses)) %>% 
+        select(-p_pop)  %>% mutate(shape = "p", parameter = "", rses = NA)) %>% 
+  filter(bicc <= 810) %>% 
+  ggplot(aes(lambda_pop, m_pop, color = bicc, shape = shape)) + 
+  geom_point(size = 2) + 
+  scale_x_log10() + scale_y_log10() + 
+  color_bicc() + 
+  geom_vline(xintercept = 500) +
+  geom_hline(yintercept = 160)
+
+rbind(m_profile %>% filter(parameter == "lambda_pop") %>% rename(lambda_pop = estimate) %>% mutate(shape = "m"),
+      lambda_profile %>% filter(parameter == "m_pop") %>% rename(m_pop = estimate) %>% mutate(shape = "lambda"),
+      merge(p_profile %>% filter(parameter == "m_pop") %>% rename(m_pop = estimate) %>% select(-parameter, -rses),
+            p_profile %>% filter(parameter == "lambda_pop") %>% rename(lambda_pop = estimate) %>% select(-parameter, -rses)) %>% 
+        select(-p_pop)  %>% mutate(shape = "p", parameter = "", rses = NA)) %>% 
+  filter(bicc <= 810) %>% 
+  ggplot(aes(lambda_pop, bicc, color = log10(m_pop), shape = shape)) + 
+  geom_point(size = 2) + 
+  scale_x_log10() + 
+  geom_vline(xintercept = 500)

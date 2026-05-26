@@ -1,6 +1,8 @@
 # Load libraries
 library(here)
 library(ggsci)
+library(tidyverse)
+library(ggh4x)
 
 source(here("scripts", "initialize_monolix.R"))
 source(here("scripts", "functions.R"))
@@ -418,14 +420,27 @@ all_tabestimates <- all_tabestimates %>%
   mutate(best = am[which.min(bicc)]) %>% 
   ungroup
 
+ids <- read_csv(here("data", "derived", "reservoir_correlates.csv")) %>% 
+  filter(Study == 3) %>% distinct(id, Animal)
+ids <- left_join(
+  ids,
+  mutate(data, treatment = factor(interaction(tlr7,ab)) ) %>% distinct(id,treatment)
+) %>% 
+  arrange(treatment) %>% 
+  mutate(Animal = fct_inorder(Animal))
+
+colors <- c("Control" = "black", "TLR7" = "#027dbb", "Vac" = "#fcba12", "Ab" ="#fa61c2", "TLR7 + Vac" = "#7ab148",  "TLR7 + Ab" = "#7f48b1", "TLR7 + Vac + Ab" =  "#a96e7c")
+strip <- strip_themed(text_x = elem_list_text(color = unname(rep(colors[c("Control", "TLR7", "Ab", "TLR7 + Ab")], each = 11))))
+
 SHIV_comparison_indiv_fit <- all_table_predictions %>% 
   filter(am %in% c("am1", "am2")) %>% 
-  mutate(am = factor(am, levels = c("am1", "am2"), labels = c("Ab effect on Np", "An effect on p"))) %>% 
+  mutate(am = factor(am, levels = c("am1", "am2"), labels = c("Ab effect on Np (AM1)", "An effect on p (AM2)"))) %>% 
+  left_join(ids) %>% 
   ggplot(aes(time, log10(V_mode), group = interaction(run, am), color = am))  + 
   geom_hline(yintercept = 2.3, lty = "dashed", color = "gray") +
-  geom_point(data = data, aes(time, vl), inherit.aes = F, size = 2) + 
+  geom_point(data = data %>% left_join(ids), aes(time, vl), inherit.aes = F, size = 2) + 
   geom_line(alpha = 0.5) + 
-  facet_wrap(~id) + 
+  facet_wrap2(~Animal, strip = strip) + 
   scale_color_brewer("model", palette = "Accent") +
   guides(color = guide_legend(override.aes = list(alpha = 1))) + 
   scale_y_continuous(
@@ -436,11 +451,11 @@ SHIV_comparison_indiv_fit <- all_table_predictions %>%
   theme_minimal() +
   theme(panel.border = element_rect(color = "black", fill = NA),
         strip.background = element_blank(), panel.grid = element_blank(),
-        plot.title = element_text(face = "bold")) +
+        plot.title = element_text(face = "bold"), strip.text = element_text(face = 2)) +
   labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
-       title = "Study 3: SHIV-TLR7-AB Individual Fits")
+       title = "Study 3: SHIV-TLR7-AB Individual Fits", color = "Model")
 
-ggsave(here("paper_figures", "SHIV_compare_p_Np.pdf"), SHIV_comparison_indiv_fit, width = 10, height = 8)
+ggsave(here("paper_figures", "SHIV_compare_p_Np.pdf"), SHIV_comparison_indiv_fit, width = 10, height = 10)
 
 # Look at results #####
 
