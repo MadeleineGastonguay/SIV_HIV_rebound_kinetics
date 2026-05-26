@@ -372,3 +372,39 @@ alt_mod(
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
 # 699.366488    729.366488    756.129333    769.324619      5.000000      0.355372 
+
+## additional RMs:
+rm1_new <- list(
+  "lambda" = "tlr7",
+  "ta" = "tlr7",
+  "betas" = "ab",
+  "NPs" = "ab"
+)
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm1_new",
+  model_file, data_file,
+  igs, rm1_new,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 681.6845566   711.6845566   738.4474011   751.6426878     5.0000000     0.3765584 
+
+rm5 <- list(
+  "betas" = "tlr7",
+  "lambda" = "ab",
+  "NPs" = "ab"
+)
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm5",
+  model_file, data_file,
+  igs, rm5,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 694.1195065   722.1195065   747.0981613   760.2934480     5.0000000     0.3070874 
