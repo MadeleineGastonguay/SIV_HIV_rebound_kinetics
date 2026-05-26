@@ -49,7 +49,7 @@ igs <- read_csv(here(out_folder, "IGS_no_cov_fixed_param", "best_estimates.csv")
 
 set_base(igs, fixed = fixed)
 
-# saveProject(here(out_folder, project_name))
+if(!file.exists(here(out_folder, project_name))) saveProject(here(out_folder, project_name))
 
 # Run SCM
 relationships <- NULL # nothing locked in
@@ -63,6 +63,8 @@ loadProject(here(out_folder, project_name))
 mb <- getModelBuildingResults()
 
 out <- plot_model_building(mb)
+
+write_csv(out$summary, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_summary.csv"))
 
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
        out$plot, width = 5, height = 7)
@@ -88,3 +90,57 @@ alt_mod(
 
 # BICc is worse for this model because it is giving estimates in the regime where
 # avearimic monkeys are because of a reduction in reservoir instead of immune control... do IGS for both models
+
+# AM2: no tlr7 effect on ta
+am2 <- list("lambda" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am2",
+  model_file, data_file,
+  igs, am2,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 382.0365916   406.0365916   418.5708609   432.9961944     5.0000000     0.3114287 
+
+# AM3: no tlr7 effect on ta
+am3 <- list("betas" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am3",
+  model_file, data_file,
+  igs, am3,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# RM1: TLR7 effects from SHIV study
+rm1 <- list("m" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm1",
+  model_file, data_file,
+  igs, rm1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 388.2586636   412.2586636   424.7929328   439.2182664     5.0000000     0.6056431 
+
+# RM2: TLR7 effects from SHIV study plus tlr7 on ta
+rm2 <- list("m" = "tlr7",
+            "ta" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm2",
+  model_file, data_file,
+  igs, rm2,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 379.1354302   405.1354302   418.7142219   433.1395554     5.0000000     0.5869087
