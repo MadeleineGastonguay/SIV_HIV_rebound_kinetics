@@ -1,0 +1,50 @@
+﻿Study,Study Wk,Timing,id,Treatment,size_Gag,size_Env,size_Pol,size_Total
+4,74,Post MVA Vaccination 2,7156,Control,30,10,20,60
+4,74,Post MVA Vaccination 2,7157,Control,100,0,10,110
+4,74,Post MVA Vaccination 2,7158,Control,30,40,10,80
+4,74,Post MVA Vaccination 2,7159,Control,35,30,5,70
+4,74,Post MVA Vaccination 2,7160,Control,0,20,0,20
+4,74,Post MVA Vaccination 2,7219,Control,40,40,30,110
+4,74,Post MVA Vaccination 2,7220,Control,15,10,0,25
+4,74,Post MVA Vaccination 2,7221,Control,20,10,40,70
+4,74,Post MVA Vaccination 2,7222,Control,50,0,20,70
+4,74,Post MVA Vaccination 2,7223,Control,40,120,40,200
+4,74,Post MVA Vaccination 2,7224,Control,25,0,0,25
+4,74,Post MVA Vaccination 2,7245,Control,20,0,0,20
+4,74,Post MVA Vaccination 2,7246,Control,0,130,10,140
+4,74,Post MVA Vaccination 2,7247,Control,0,20,0,20
+4,74,Post MVA Vaccination 2,7261,Control,40,10,10,60
+4,74,Post MVA Vaccination 2,7132,TLR7 + Ab,0,0,10,10
+4,74,Post MVA Vaccination 2,7133,TLR7 + Ab,0,10,0,10
+4,74,Post MVA Vaccination 2,7134,TLR7 + Ab,0,20,10,30
+4,74,Post MVA Vaccination 2,7135,TLR7 + Ab,20,0,0,20
+4,74,Post MVA Vaccination 2,7136,TLR7 + Ab,95,55,0,150
+4,74,Post MVA Vaccination 2,7137,TLR7 + Ab,30,20,20,70
+4,74,Post MVA Vaccination 2,7138,TLR7 + Ab,0,10,10,20
+4,74,Post MVA Vaccination 2,7139,TLR7 + Ab,10,0,0,10
+4,74,Post MVA Vaccination 2,7140,TLR7 + Ab,40,30,0,70
+4,74,Post MVA Vaccination 2,7141,TLR7 + Ab,0,10,10,20
+4,74,Post MVA Vaccination 2,7142,TLR7 + Ab,60,110,80,250
+4,74,Post MVA Vaccination 2,7143,TLR7 + Ab,90,60,40,190
+4,74,Post MVA Vaccination 2,7120,TLR7 + Vac,110,910,160,1180
+4,74,Post MVA Vaccination 2,7121,TLR7 + Vac,30,200,20,250
+4,74,Post MVA Vaccination 2,7122,TLR7 + Vac,200,860,430,1490
+4,74,Post MVA Vaccination 2,7123,TLR7 + Vac,190,110,0,300
+4,74,Post MVA Vaccination 2,7124,TLR7 + Vac,2220,480,90,2790
+4,74,Post MVA Vaccination 2,7125,TLR7 + Vac,1160,520,30,1710
+4,74,Post MVA Vaccination 2,7126,TLR7 + Vac,70,450,350,870
+4,74,Post MVA Vaccination 2,7127,TLR7 + Vac,670,310,50,1030
+4,74,Post MVA Vaccination 2,7128,TLR7 + Vac,3000,870,70,3940
+4,74,Post MVA Vaccination 2,7129,TLR7 + Vac,90,240,30,360
+4,74,Post MVA Vaccination 2,7130,TLR7 + Vac,20,70,0,90
+4,74,Post MVA Vaccination 2,7131,TLR7 + Vac,20,160,70,250
+4,74,Post MVA Vaccination 2,7145,TLR7 + Vac + Ab,400,1910,1140,3450
+4,74,Post MVA Vaccination 2,7146,TLR7 + Vac + Ab,360,610,40,1010
+4,74,Post MVA Vaccination 2,7147,TLR7 + Vac + Ab,60,260,80,400
+4,74,Post MVA Vaccination 2,7148,TLR7 + Vac + Ab,70,360,370,800
+4,74,Post MVA Vaccination 2,7149,TLR7 + Vac + Ab,740,340,90,1170
+4,74,Post MVA Vaccination 2,7150,TLR7 + Vac + Ab,160,800,60,1020
+4,74,Post MVA Vaccination 2,7151,TLR7 + Vac + Ab,330,1650,130,2110
+4,74,Post MVA Vaccination 2,7152,TLR7 + Vac + Ab,790,210,20,1020
+4,74,Post MVA Vaccination 2,7154,TLR7 + Vac + Ab,120,40,50,210
+4,74,Post MVA Vaccination 2,7155,TLR7 + Vac + Ab,210,790,180,1180
