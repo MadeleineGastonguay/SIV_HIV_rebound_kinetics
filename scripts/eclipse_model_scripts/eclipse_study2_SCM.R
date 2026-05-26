@@ -49,8 +49,7 @@ igs <- read_csv(here(out_folder, "IGS_no_cov_fixed_param", "best_estimates.csv")
 
 set_base(igs, fixed = fixed)
 
-# saveProject(here(out_folder, project_name))
-
+if(!file.exists(here(out_folder, project_name))) saveProject(here(out_folder, project_name))
 
 # Run SCM
 relationships <- NULL # nothing locked in
@@ -64,10 +63,10 @@ mb <- getModelBuildingResults()
 
 out <- plot_model_building(mb)
 
+write_csv(out$summary, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_summary.csv"))
+
 ggsave(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_plot.png"),
        out$plot, width = 10, height = 7)
-
-write_csv(out$summary, here(out_folder, str_remove(project_name, "\\.mlxtran$"), "model_building_summary.csv"))
 
 
 ## AM1: Final model without tlr7*vac on ta because it doesn't significantly improve BICc
@@ -166,3 +165,164 @@ alt_mod(
 
 # OFV           AIC           BIC          BICc  chosenDegree standardError 
 # 458.9896446   486.9896446   508.3586920   521.1834387     5.0000000     0.2620964 
+
+## AM5: immune effects on p instead of Np
+am5 <- list("ta" = "vac",
+              "p" = c("intTLR7VAC", "vac"))
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am5",
+  model_file, data_file,
+  igs, am5,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 530.6418772   558.6418772   580.0109246   592.8356713     5.0000000     0.1783943 
+
+## AM6: immune effects on m instead of Np
+am6 <- list("ta" = "vac",
+            "m" = c("intTLR7VAC", "vac"))
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am6",
+  model_file, data_file,
+  igs, am6,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 491.8627900   519.8627900   541.2318374   554.0565841     5.0000000     0.2809666 
+
+## AM7: add TLR7 effects from study 1
+am7 <- list("ta" = c("vac", "tlr7"),
+            "NPs" = c("intTLR7VAC", "vac"),
+            "lambda" = "tlr7")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "am7",
+  model_file, data_file,
+  igs, am7,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 453.4134274   485.4134274   509.8351958   522.6599426     5.0000000     0.2660963
+
+
+## rm1: vaccine effects estimated for SHIV
+rm1 <- list("betas" = "vac", 
+            "NPs" = "vac")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm1",
+  model_file, data_file,
+  igs, rm1,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 478.9465817   504.9465817   524.7892685   537.6140153     5.0000000     0.2491585 
+
+## rm2: vaccine effects estimated for SHIV plus estimates from final model
+rm2 <- list("betas" = "vac", 
+            "NPs" = c("vac", "intTLR7VAC"))
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm2",
+  model_file, data_file,
+  igs, rm2,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 470.5141533   498.5141533   519.8832007   532.7079474     5.0000000     0.2448972 
+
+## Additional RMS:
+
+bh2 <- list(
+  "ta" = c("tlr7","vac"),
+  "NPs" = c("vac", "intTLR7VAC")
+)
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "bh2",
+  model_file, data_file,
+  igs, bh2,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 457.2281358   487.2281358   510.1235437   522.9482905     5.0000000     0.3018443
+
+rm2b <- list(
+  "lambda" = "vac",
+  "NPs" = "vac")
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm2b",
+  model_file, data_file,
+  igs, rm2b,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 479.8830276   505.8830276   525.7257144   538.5504612     5.0000000     0.2747434 
+
+
+rm3b <- list(
+  "lambda" = "vac",
+  "NPs" = c("vac", "intTLR7VAC")
+)
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm3b",
+  model_file, data_file,
+  igs, rm3b,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 470.4516142   498.4516142   519.8206615   532.6454083     5.0000000     0.2752531 
+
+rm4 <- list(
+  "m" = "tlr7",
+  "NPs" = c("vac", "intTLR7VAC"),
+  "betas" = "vac"
+)
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm4",
+  model_file, data_file,
+  igs, rm4,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 468.138961    498.138961    521.034369    533.859116      5.000000      0.268917 
+
+rm4b <- list(
+  "betas" = "tlr7",
+  "NPs" = c("vac", "intTLR7VAC"),
+  "lambda" = "vac"
+)
+
+alt_mod(
+  here(out_folder, str_remove(project_name, "\\.mlxtran$")), "rm4b",
+  model_file, data_file,
+  igs, rm4b,
+  headerTypes, error_model,
+  fixed = fixed
+)
+
+# OFV           AIC           BIC          BICc  chosenDegree standardError 
+# 469.2986109   499.2986109   522.1940188   535.0187655     5.0000000     0.3725877 
