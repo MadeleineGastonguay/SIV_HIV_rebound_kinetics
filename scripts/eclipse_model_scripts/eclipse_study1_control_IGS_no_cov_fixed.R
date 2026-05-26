@@ -8,7 +8,7 @@ source(here("scripts", "functions.R"))
 theme_set(theme_minimal())
 
 # If FALSE, results will be loaded from previous runs of this script (after running project setup)
-RERUN <- TRUE
+RERUN <- FALSE
 
 # Project setup ####
 ## Results folder
