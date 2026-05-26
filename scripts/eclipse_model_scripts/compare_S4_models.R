@@ -178,6 +178,8 @@ for(i in 1:nrow(temp_df)){
 
 head(typical_trajectories)
 
+model_palette <- scales::viridis_pal(direction = -1, end = 0.85)(3)
+strip <- strip_themed(text_x = elem_list_text(face = rep(2,4), color = colors[c(1,5,6,7)]))
 SHIV_traj <- typical_trajectories %>% 
   mutate(Treatment = fct_inorder(case_when(
     treatment == "control" ~ "Control",
@@ -191,31 +193,36 @@ SHIV_traj <- typical_trajectories %>%
                    am == "best_4.4"~ 927,
                    am == "best_4.6"~ 918),
   am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
-              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta"))) %>% 
-  filter(post_activated == "yes", am != "TLR7:Lambda, Ab:Lambda") %>% 
+              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", 
+                         "TLR7:Lambda, Ab:Lambda (AM3)", 
+                         "TLR7:Lambda, Ab:Beta (AM4)"))) %>% 
+  # filter(post_activated == "yes", am != "TLR7:Lambda, Ab:Lambda") %>% 
+  filter(post_activated == "yes") %>% 
   ggplot(aes(time, V/log(10), group = interaction(am, treatment), color = am)) + 
   geom_hline(yintercept = 1.1, lty = "dashed", color = "gray") +
   # geom_line(data = add_treatments(STUDY4_DATA), inherit.aes = F, aes(time, vl, group = id) , alpha = 0.5, linewidth = 0.25) +
-  geom_point(data = add_treatments(STUDY4_DATA), inherit.aes = F, aes(time, vl, group = id) , alpha = 0.5) +
+  # geom_point(data = add_treatments(STUDY4_DATA), inherit.aes = F, aes(time, vl, group = id) , alpha = 0.5) +
+  geom_point(data = add_treatments(STUDY4_DATA),
+             aes(time, vl), alpha = 0.5, inherit.aes = F) +
   geom_line(linewidth = 1) + 
   coord_cartesian(ylim = c(0,7), expand = FALSE, xlim = c(0,200)) +
-  scale_color_manual(values = scales::viridis_pal(direction = -1)(3)[-2]) +
+  scale_color_manual(values = model_palette) +
   # scale_color_viridis_d(direction = -1) +
   # scale_color_manual(values = unname(colors)) +
   scale_y_continuous(
     labels = scales::label_math(expr = 10^.x)
   ) + 
   labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
-       title = "SHIV TLR7 + Vac + Ab Study", color = "Model", lty = NULL) +
-  theme(plot.title = element_text(hjust = 0.5, face = 2), legend.position = "bottom") + 
-  facet_wrap(~Treatment, dir = "v") 
+       title = "Study 4: SHIV-TLR7-Vac-Ab Population Means", color = "Model", lty = NULL) +
+  theme(plot.title = element_text(hjust = 0.5, face = 2), legend.position = "bottom") +
+  facet_wrap2(~Treatment, dir = "v", nrow = 1, strip = strip)  
 # legend.position = c(1,1), legend.justification = c(1, 1), legend.box = "horizontal") 
 
-ggsave(here(out_folder, "population_trajectories.png"), SHIV_traj, width = 7, height = 7)
+ggsave(here(out_folder, "population_trajectories.png"), SHIV_traj, width = 7, height = 5)
 
 colors <- c("Control" = "black", "TLR7" = "#027dbb", "Vac" = "#fcba12", "Ab" ="#fc12a6", "TLR7 + Vac" = "#7ab148",  "TLR7 + Ab" = "#7f48b1", "TLR7 + Vac + Ab" =  "#a96e7c")
 
-strip <- strip_themed(background_x = elem_list_rect(fill = rev(scales::viridis_pal()(3))),
+strip <- strip_themed(background_x = elem_list_rect(fill = model_palette),
                       text_x = elem_list_text(color = c("black", "black", "white")))
 
 SHIV_compare_trmt_groups <- typical_trajectories %>% 
@@ -274,7 +281,70 @@ for(i in 1:nrow(temp_df2)){
   individual_trajectories <- rbind(individual_trajectories, sim )
 }
 
+strip <- strip_themed(text_x = elem_list_text(
+  face = rep(2, nrow(temp_df2)),
+  color = c(rep(colors["Control"], 15),
+            rep(colors["TLR7 + Vac"], 12),
+            rep(colors["TLR7 + Ab"], 12),
+            rep(colors["TLR7 + Vac + Ab"], 10))))
+
 study4_indiv_fits <- individual_trajectories %>% 
+  mutate(Treatment = factor(case_when(
+    treatment == "control" ~ "Control",
+    treatment == "tlr7" ~ "TLR7",
+    treatment == "ab" ~ "Ab",
+    treatment == "tlr7ab" ~ "TLR7 + Ab",
+    treatment == "tlr7vac" ~ "TLR7 + Vac",
+    treatment == "tlr7abvac" ~ "TLR7 + Vac + Ab"
+  ), levels = c("Control", "TLR7 + Ab", "TLR7 + Vac", "TLR7 + Vac + Ab")),
+  BICc = case_when(am == "best_model" ~ 904, 
+                   am == "best_4.4"~ 927,
+                   am == "best_4.6"~ 918),
+  am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
+              labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", 
+                         "TLR7:Lambda, Ab:Lambda (AM3)", 
+                         "TLR7:Lambda, Ab:Beta (AM4)"))) %>% 
+  # filter(am !=  "TLR7:Lambda, Ab:Lambda") %>% 
+  arrange(am, Treatment) %>% mutate(id = fct_inorder(as.character(id))) %>%  
+  # filter(post_activated == "yes") %>% 
+  ggplot(aes(time, V/log(10))) + 
+  geom_hline(yintercept = 1.1, lty = "dashed", color = "gray") +
+  geom_point(data = add_treatments(STUDY4_DATA),
+             aes(time, vl), alpha = 0.25) +
+  geom_line(data = . %>% filter(pre_activated == "yes"), aes(color = am, group = am), alpha = 0.75, linewidth = 0.5) + 
+  geom_line(data = . %>% filter(pre_activated == "no"), aes(color = am, group = am)) + 
+  facet_wrap2(~id, ncol = 9, strip = strip) + 
+  scale_color_manual(values = model_palette) +
+  # scale_color_viridis_d(direction = -1) +
+  # scale_fill_manual(values = (colors)) +
+  scale_y_continuous(
+    labels = scales::label_math(expr = 10^.x),
+    breaks = c(-1,1,3,5,7),
+    limits = c(-2,7), expand = c(0,0)
+  ) +
+  scale_x_continuous(limits = c(0,180), expand = c(0,0), breaks = seq(0,180,by = 60)) +
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        strip.background = element_blank(), panel.grid = element_blank(),
+        plot.title = element_text(face = "bold")) + 
+  labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
+       title = "Study 4: SHIV-TLR7-Vac-Ab Individual Fits", color = "Model") + 
+  guides(fill = guide_legend(override.aes = list(alpha = 1))) + 
+  theme(legend.position = "bottom", legend.box = "horiztonal")
+
+ggsave(here(out_folder, "individual_trajectories.png"), study4_indiv_fits, width = 11, height = 8)
+
+# supplemental figure for paper:
+combined_plot <- (SHIV_traj ) + 
+  (study4_indiv_fits + theme(legend.position = "none")) +
+  plot_layout(heights = c(1,3.5)) &
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(face = 2))
+
+ggsave(here("paper_figures", "study4_supplemental.pdf"), 
+       combined_plot, width = 8, height = 11)
+
+study4_indiv_fits_censored <- individual_trajectories %>% 
+  filter(id %in% full_cens) %>% 
   mutate(Treatment = fct_inorder(case_when(
     treatment == "control" ~ "Control",
     treatment == "tlr7" ~ "TLR7",
@@ -288,17 +358,17 @@ study4_indiv_fits <- individual_trajectories %>%
                    am == "best_4.6"~ 918),
   am = factor(am, levels = c("best_model", "best_4.6", "best_4.4"),
               labels = c("TLR7:Beta, Ab:Lambda (Best BICc)", "TLR7:Lambda, Ab:Lambda", "TLR7:Lambda, Ab:Beta"))) %>% 
-  filter(am !=  "TLR7:Lambda, Ab:Lambda") %>% 
+  filter(am !=  "TLR7:Lambda, Ab:Beta") %>%
   arrange(am, Treatment) %>% mutate(id = fct_inorder(as.character(id))) %>%  
   # filter(post_activated == "yes") %>% 
   ggplot(aes(time, V/log(10))) + 
   geom_hline(yintercept = 1.1, lty = "dashed", color = "gray") +
-  geom_point(data = add_treatments(STUDY4_DATA),
+  geom_point(data = add_treatments(STUDY4_DATA) %>% filter(id %in% full_cens),
              aes(time, vl, fill = Treatment), shape = 21, alpha = 0.5) +
   geom_line(data = . %>% filter(pre_activated == "yes"), aes(color = am, group = am), alpha = 0.75, linewidth = 0.5) + 
   geom_line(data = . %>% filter(pre_activated == "no"), aes(color = am, group = am), alpha = 0.75, linewidth = 1) + 
-  facet_wrap(~id, ncol = 9) + 
-  scale_color_manual(values = scales::viridis_pal(direction = -1)(3)[-2]) +
+  facet_wrap(~id, ncol = 4) + 
+  scale_color_manual(values = model_palette) +
   # scale_color_viridis_d(direction = -1) +
   scale_fill_manual(values = (colors)) +
   scale_y_continuous(
@@ -312,9 +382,9 @@ study4_indiv_fits <- individual_trajectories %>%
         plot.title = element_text(face = "bold")) + 
   labs(x = "Time after ART stop (days)", y = "Viral load (copies/ml)",
        title = "Study 4: SHIV-TLR7-Ab-Vac Individual Fits", color = "Model") + 
-  guides(fill = guide_legend(override.aes = list(alpha = 1)))
+  guides(fill = guide_legend(override.aes = list(alpha = 1))) + 
+  theme(legend.position = "bottom", legend.box = "horiztonal")
 
-ggsave(here(out_folder, "individual_trajectories.png"), study4_indiv_fits, width = 11, height = 8)
 
 
 
@@ -360,8 +430,8 @@ conditional_indiv_params <- all_simParams %>%
   scale_x_log10() + 
   # geom_point(data = tmp_df %>% mutate(parameter = paste0(parameter, "_mode")), position = position_dodge(width = 0.9), size = 3, shape = 17 ) +
   # geom_point(data = tmp_df , position = position_dodge(width = 0.9) ) +
-  scale_color_viridis_d(direction = -1) + 
-  scale_fill_viridis_d(direction = -1) + 
+  scale_color_viridis_d(direction = -1, end = 0.85) + 
+  scale_fill_viridis_d(direction = -1, end = 0.85) + 
   labs(color = "Model", fill = "Model", y = "Treatment", x = "Parameter Estimate",
        title = "Distribution of individual parameter estimates sampled from the conditional distribution") + 
   theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5, face = 2))
@@ -384,8 +454,8 @@ EBE_indiv_params <- all_indivParams %>%
   geom_point(data = tmp_df %>% mutate(parameter = paste0(parameter, "_mode")), 
              position = position_dodge(width = 0.9),  shape = 108, size = 5 ) +
   # geom_point(data = tmp_df , position = position_dodge(width = 0.9) ) +
-  scale_color_viridis_d(direction = -1) + 
-  scale_fill_viridis_d(direction = -1) +
+  scale_color_viridis_d(direction = -1, end = 0.85) + 
+  scale_fill_viridis_d(direction = -1, end = 0.85) +
   labs(color = "Model", fill = "Model", y = "Treatment", x = "Parameter Estimate",
        title = "Distribution of EBEs") + 
   theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5, face = 2))
@@ -418,7 +488,8 @@ pop_parameters_plot_groups <- rbind(
   geom_col(position = position_dodge()) + 
   facet_wrap(~parameter, scales = "free_x") + 
   theme_minimal() + 
-  scale_fill_viridis_d() +
+  scale_fill_manual(values = rev(model_palette)) +
+  # scale_fill_viridis_d() +
   theme(legend.position = "bottom") + 
   labs(x = "Parameter Estimate", fill = "Model", title = "Parameter means for each treatment group") +
   guides(fill = guide_legend(reverse = TRUE)) + 
@@ -494,7 +565,7 @@ distribution_plot <- density_data %>%
         axis.text.x = element_text(size = 12),
         strip.text = element_text(size = 12),
         legend.position = "bottom") + 
-  scale_color_viridis_d(direction = -1) + 
+  scale_color_viridis_d(direction = -1, end = 0.85) + 
   labs(color = "Model", x = "Parameter Estimate",
        title = "Theoretical log-normal parameter distributions for each treatment group") + 
   theme(plot.title = element_text(hjust = 0.5, face = 2))
