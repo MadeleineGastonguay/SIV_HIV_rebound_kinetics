@@ -1,0 +1,462 @@
+---
+title: "Parameter Identifiability Exploration"
+output: 
+  html_document:
+     toc: true
+     toc_float: true
+     toc_depth: 2
+     code_folding: hide
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Load libraries
+library(tidyverse)
+library(ggbeeswarm)
+library(here)
+# Load libraries
+library(here)
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, out.width="100%", out.height="100%")
+
+# Source scripts for initializing monolix and functions to run the analysis
+source(here("scripts", "initialize_monolix.R"))
+source(here("scripts", "functions.R"))
+
+data <- read_delim(here("data", "derived", "STUDY2_DATA.txt"), delim = "\t")
+
+theme_set(theme_minimal())
+```
+
+## Analysis without any fixed parameters
+
+```{r}
+## Results before fixing parameters ####
+study <- "study2"
+project_name <- "IGS_no_cov.mlxtran"
+out_folder <- here("results_eclipse", study)
+
+# Load Project and Results
+loadProject(here(out_folder, project_name))
+load(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
+
+# Top 95% of cumulative probability
+runs_95 <- calculate_BICw(tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
+length(runs_95)
+
+distinct(tabestimates, run, bicc) %>%
+  ggplot(aes("BICc", bicc, color = run %in% runs_95)) + geom_beeswarm()
+
+calculate_BICw(tabestimates) %>%
+  ggplot(aes(bicc, cumprob, color = run %in% runs_95)) + geom_point()
+
+plot_bicc_v_estimate(tabestimates, color = runs_95)
+
+tabestimates_95 <- tabestimates %>% filter(run %in% runs_95)
+estimate_boxplots(tabestimates_95)
+compare_estimates(tabestimates_95)
+
+# Best 10 runs
+runs_10 <- tabestimates %>% distinct(run, bicc) %>% arrange(bicc) %>% slice(1:10) %>% pull(run)
+length(runs_10)
+
+distinct(tabestimates, run, bicc) %>%
+  ggplot(aes("BICc", bicc, color = run %in% runs_10)) + geom_beeswarm()
+
+calculate_BICw(tabestimates) %>%
+  ggplot(aes(bicc, cumprob, color = run %in% runs_10)) + geom_point()
+
+plot_bicc_v_estimate(tabestimates, color = runs_10)
+
+tabestimates_10 <- tabestimates %>% filter(run %in% runs_10)
+estimate_boxplots(tabestimates_10)
+compare_estimates(tabestimates_10)
+
+# Individual parameter distributions for best 10 runs
+indivParams %>% filter(run %in% runs_10) %>%
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>%
+  left_join(tabestimates_10 %>% distinct(run, bicc)) %>%
+  ggplot(aes(factor(run), EBE, color = bicc, fill = bicc)) +
+  geom_violin(alpha = 0.5) + geom_point() +
+  facet_wrap(~parameter, scales = "free_y") + scale_y_log10() +
+  color_bicc() + fill_bicc()
+
+indivParams %>% filter(run %in% runs_10) %>%
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>%
+  ggplot(aes(EBE, fill = factor(run), color = factor(run))) +
+  geom_density(alpha = 0.5) + facet_wrap(~parameter, scales = "free") +
+  scale_x_log10() + labs(color = "run", fill = "run")
+
+# Plot parameter distributions for best 10 runs
+df <- merge(
+  tabestimates_10 %>% filter(grepl("pop", parameter)) %>%
+    separate(parameter, sep = "_", into = c("parameter", "temp")) %>%
+    select(parameter, run, estimate, bicc) %>% rename(mean = estimate),
+  tabestimates_10 %>% filter(grepl("omega", parameter)) %>%
+    separate(parameter, sep = "_", into = c("temp", "parameter")) %>%
+    select(parameter, run, estimate, bicc) %>% rename(sd = estimate)
+)
+
+density_data <- df %>%
+  group_by(parameter) %>%
+  group_modify(~ {
+    x_vals <- exp(seq((min(log(.x$mean) - 4*.x$sd)),
+                      (max(log(.x$mean) + 4*.x$sd)),
+                      length.out = 500))
+    do.call(rbind, lapply(1:nrow(.x), function(i) {
+      data.frame(
+        x = x_vals,
+        y = dnorm(log(x_vals), mean = log(.x$mean[i]), sd = .x$sd[i]),
+        run = as.factor(.x$run[i])
+      )
+    }))
+  }) %>%
+  ungroup()
+
+density_data %>%
+  left_join(tabestimates_10 %>% distinct(run, bicc) %>% mutate(run = factor(run))) %>%
+  ggplot(aes(x = x, y = y, color = bicc, group = run)) +
+  geom_line(size = 1) +
+  facet_wrap(~parameter, scales = "free") +
+  labs(title = "Normal Distributions by Parameter",
+       x = "Value", y = "Density") +
+  theme_minimal() + color_bicc() +
+  scale_x_log10()
+
+# Shrinkage for each parameter
+shrinkage %>%
+  filter(run %in% runs_10) %>%
+  left_join(distinct(tabestimates, run, bicc)) %>%
+  ggplot(aes(factor(run), conditionalMode, fill = bicc)) +
+  geom_col() + geom_hline(yintercept = 30, lty = "dashed") +
+  fill_bicc() + facet_wrap(~parameter) +
+  labs(x = "Run", y = "Shrinkage (%)")
+```
+
+
+## Analysis after fixing parameters 
+
+```{r}
+## Results after fixing parameters ####
+
+study <- "study2"
+project_name <- "IGS_no_cov_fixed_param.mlxtran"
+out_folder <- here("results_eclipse", study)
+# Load Project
+loadProject(here(out_folder, project_name))
+# Load results from IGS over narrow range
+load(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
+
+# top 95% of cumulative probability
+runs_95 <- calculate_BICw(tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
+length(runs_95)
+
+distinct(tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs_95)) + 
+  geom_beeswarm()
+
+calculate_BICw(tabestimates) %>% 
+  ggplot(aes(bicc, cumprob, color = run %in% runs_95)) + 
+  geom_point()
+
+plot_bicc_v_estimate(tabestimates, color = runs_95)
+
+tabestimates_95 <- tabestimates %>% filter(run %in% runs_95)
+
+estimate_boxplots(tabestimates_95)
+
+compare_estimates(tabestimates_95)
+
+
+# best 10 runs
+runs_10 <- tabestimates %>% distinct(run, bicc) %>% arrange(bicc) %>% slice(1:10) %>% pull(run)
+length(runs_10)
+
+distinct(tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs_10)) + 
+  geom_beeswarm()
+
+calculate_BICw(tabestimates) %>% 
+  ggplot(aes(bicc, cumprob, color = run %in% runs_10)) + 
+  geom_point()
+
+plot_bicc_v_estimate(tabestimates, color = runs_10)
+
+tabestimates_10 <- tabestimates %>% filter(run %in% runs_10)
+
+estimate_boxplots(tabestimates_10)
+
+compare_estimates(tabestimates_10)
+
+## Look at individual parameter distributions for the best 10 runs
+
+indivParams %>% filter(run %in% runs_10) %>% 
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>% 
+  left_join(tabestimates_10 %>% distinct(run, bicc)) %>% 
+  ggplot(aes(factor(run), EBE, color = bicc, fill = bicc)) + 
+  geom_violin(alpha = 0.5) +
+  geom_point() + 
+  facet_wrap(~parameter, scales = "free_y") + 
+  scale_y_log10() + 
+  color_bicc() + 
+  fill_bicc()
+
+indivParams %>% filter(run %in% runs_10) %>% 
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>% 
+  ggplot(aes(EBE, fill = factor(run), color = factor(run))) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~parameter, scales = "free") + 
+  scale_x_log10() + 
+  labs(color = "run", fill = "run") 
+
+## Plot parameter distributions for the best 10 runs:
+
+df <- merge(
+  tabestimates_10 %>% filter(grepl("pop", parameter)) %>% 
+    separate(parameter, sep = "_", into = c("parameter", "temp")) %>% 
+    select(parameter, run, estimate) %>% rename(mean = estimate) %>% 
+    rbind(data.frame(parameter = "lambda", mean = 50, run = runs_10),
+          data.frame(parameter = "p", mean = 0.7, run = runs_10)),
+  tabestimates_10 %>% filter(grepl("omega", parameter)) %>% 
+    separate(parameter, sep = "_", into = c("temp", "parameter")) %>% 
+    select(parameter, run, estimate, bicc) %>% rename(sd = estimate)
+) 
+
+density_data <- df %>%
+  group_by(parameter) %>%
+  group_modify(~ {
+    x_vals <- exp(seq((min(log(.x$mean) - 4*.x$sd)),
+                      (max(log(.x$mean) + 4*.x$sd)),
+                      length.out = 500))
+    do.call(rbind, lapply(1:nrow(.x), function(i) {
+      data.frame(
+        x = x_vals,
+        y = dnorm(log(x_vals), mean = log(.x$mean[i]), sd = .x$sd[i]),
+        run = as.factor(.x$run[i])
+      )
+    }))
+  }) %>%
+  ungroup()
+
+
+# Plot with facets for each parameter
+density_data %>% 
+  left_join(tabestimates_10 %>% distinct(run, bicc) %>% mutate(run = factor(run))) %>% 
+  ggplot( aes(x = x, y = y, color = bicc, group = run)) +
+  geom_line(size = 1) +
+  facet_wrap(~parameter, scales = "free") +
+  labs(title = "Normal Distributions by Parameter",
+       x = "Value",
+       y = "Density") +
+  theme_minimal() + 
+  color_bicc() + 
+  scale_x_log10()
+
+
+# Shrinkage for each parameter
+shrinkage %>% 
+  filter(run %in% runs_10) %>% 
+  left_join(distinct(tabestimates, run, bicc)) %>% 
+  ggplot(aes(factor(run), conditionalMode, fill = bicc)) + 
+  geom_col() + 
+  geom_hline(yintercept = 30, lty = "dashed") +
+  fill_bicc() + 
+  facet_wrap(~parameter) + 
+  labs(x = "Run", y = "Shrinkage (%)") 
+```
+
+## Analysis with treatment effects
+
+```{r}
+## Results for model wtih treatment effects ###
+
+study <- "study2"
+project_name <- "IGS_am2.mlxtran"
+out_folder <- here("results_eclipse", study, "IGS_model_comparison")
+# Load Project
+loadProject(here(out_folder, project_name))
+# Load results from IGS over narrow range
+load(here(out_folder, str_remove(project_name, "\\.mlxtran$"), "IGS.RData"))
+
+
+# top 95% of cumulative probability
+runs_95 <- calculate_BICw(tabestimates) %>% filter(cumprob <= 0.95) %>% pull(run)
+length(runs_95)
+
+distinct(tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs_95)) + 
+  geom_beeswarm()
+
+calculate_BICw(tabestimates) %>% 
+  ggplot(aes(bicc, cumprob, color = run %in% runs_95)) + 
+  geom_point()
+
+plot_bicc_v_estimate(tabestimates, color = runs_95)
+
+tabestimates_95 <- tabestimates %>% filter(run %in% runs_95)
+
+estimate_boxplots(tabestimates_95)
+
+compare_estimates(tabestimates_95)
+
+
+# best 10 runs
+runs_10 <- tabestimates %>% distinct(run, bicc) %>% arrange(bicc) %>% slice(1:10) %>% pull(run)
+length(runs_10)
+
+distinct(tabestimates, run, bicc) %>% 
+  ggplot(aes("BICc", bicc, color = run %in% runs_10)) + 
+  geom_beeswarm()
+
+calculate_BICw(tabestimates) %>% 
+  ggplot(aes(bicc, cumprob, color = run %in% runs_10)) + 
+  geom_point()
+
+plot_bicc_v_estimate(tabestimates, color = runs_10)
+
+tabestimates_10 <- tabestimates %>% filter(run %in% runs_10)
+
+estimate_boxplots(tabestimates_10)
+
+compare_estimates(tabestimates_10)
+
+## Look at individual parameter distributions for the best 10 runs
+
+indivParams %>% filter(run %in% runs_10) %>% 
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>% 
+  left_join(tabestimates_10 %>% distinct(run, bicc)) %>% 
+  ggplot(aes(factor(run), EBE, color = bicc, fill = bicc)) + 
+  geom_violin(alpha = 0.5) +
+  geom_point() + 
+  facet_wrap(~parameter, scales = "free_y") + 
+  scale_y_log10() + 
+  color_bicc() + 
+  fill_bicc()
+
+
+indivParams %>% filter(run %in% runs_10) %>% 
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>% 
+  left_join(tabestimates_10 %>% distinct(run, bicc)) %>% 
+  left_join(distinct(data, id, tlr7, vac) %>% mutate(id = as.character(id))) %>% 
+  ggplot(aes(factor(run), EBE, color = bicc, fill = bicc)) + 
+  geom_violin(alpha = 0.5) +
+  geom_point() + 
+  facet_grid(parameter ~ interaction(vac, tlr7), scales = "free_y") + 
+  scale_y_log10() + 
+  color_bicc() + 
+  fill_bicc()
+
+
+
+indivParams %>% filter(run %in% runs_10) %>% 
+  pivot_longer(!c(id, run), names_to = "parameter", values_to = "EBE") %>% 
+  ggplot(aes(EBE, fill = factor(run), color = factor(run))) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~parameter, scales = "free") + 
+  scale_x_log10() + 
+  labs(color = "run", fill = "run") 
+
+## Plot parameter distributions for the best 10 runs:
+
+df <- merge(
+  tabestimates_10 %>% filter(grepl("pop", parameter)) %>% 
+    separate(parameter, sep = "_", into = c("parameter", "temp")) %>% 
+    select(parameter, run, estimate) %>% rename(mean = estimate) %>% 
+    rbind(data.frame(parameter = "lambda", mean = 50, run = runs_10),
+          data.frame(parameter = "p", mean = 0.7, run = runs_10)),
+  tabestimates_10 %>% filter(grepl("omega", parameter)) %>% 
+    separate(parameter, sep = "_", into = c("temp", "parameter")) %>% 
+    select(parameter, run, estimate, bicc) %>% rename(sd = estimate)
+) 
+
+density_data <- df %>%
+  group_by(parameter) %>%
+  group_modify(~ {
+    x_vals <- exp(seq((min(log(.x$mean) - 4*.x$sd)),
+                      (max(log(.x$mean) + 4*.x$sd)),
+                      length.out = 500))
+    do.call(rbind, lapply(1:nrow(.x), function(i) {
+      data.frame(
+        x = x_vals,
+        y = dnorm(log(x_vals), mean = log(.x$mean[i]), sd = .x$sd[i]),
+        run = as.factor(.x$run[i])
+      )
+    }))
+  }) %>%
+  ungroup()
+
+
+# Plot with facets for each parameter
+density_data %>% 
+  left_join(tabestimates_10 %>% distinct(run, bicc) %>% mutate(run = factor(run))) %>% 
+  ggplot( aes(x = x, y = y, color = bicc, group = run)) +
+  geom_line(size = 1) +
+  facet_wrap(~parameter, scales = "free") +
+  labs(title = "Normal Distributions by Parameter",
+       x = "Value",
+       y = "Density") +
+  theme_minimal() + 
+  color_bicc() + 
+  scale_x_log10()
+
+df <- merge(
+  tabestimates_10 %>% filter(parameter %in% c("ta_pop", "NPs_pop")) %>% 
+    separate(parameter, sep = "_", into = c("parameter", "temp")) %>% 
+    select(parameter, run, estimate) %>% rename(mean = estimate),
+  tabestimates_10 %>% filter(parameter %in% c("omega_ta", "omega_NPs")) %>% 
+    separate(parameter, sep = "_", into = c("temp", "parameter")) %>% 
+    select(parameter, run, estimate, bicc) %>% rename(sd = estimate)
+) %>% 
+  left_join(
+    left_join(tabestimates_10 %>% filter(grepl("_vac_1", parameter)) %>% 
+                separate(parameter, sep = "_", into = c("temp1","parameter", "temp2", "temp3")) %>% 
+                select(parameter, run, estimate) %>% rename(vac = estimate),
+              tabestimates_10 %>% filter(grepl("TLR7VAC_1", parameter)) %>% 
+                separate(parameter, sep = "_", into = c("temp1","parameter", "temp2", "temp3")) %>% 
+                select(parameter, run, estimate) %>% rename(tlr7vac = estimate))
+  ) %>% 
+  mutate(tlr7vac = mean*exp(tlr7vac)*exp(vac),
+         vac = mean*exp(vac)) %>% 
+  select(-mean) %>% 
+  pivot_longer(c(vac, tlr7vac), names_to = "group", values_to = "mean") %>% 
+  filter(!is.na(mean))
+
+density_data_by_treatment <- df %>%
+  group_by(parameter, group) %>%
+  group_modify(~ {
+    x_vals <- exp(seq((min(log(.x$mean) - 4*.x$sd)),
+                      (max(log(.x$mean) + 4*.x$sd)),
+                      length.out = 500))
+    do.call(rbind, lapply(1:nrow(.x), function(i) {
+      data.frame(
+        x = x_vals,
+        y = dnorm(log(x_vals), mean = log(.x$mean[i]), sd = .x$sd[i]),
+        run = as.factor(.x$run[i])
+      )
+    }))
+  }) %>%
+  ungroup()
+
+density_data_by_treatment %>% 
+  left_join(tabestimates_10 %>% distinct(run, bicc) %>% mutate(run = factor(run))) %>% 
+  ggplot( aes(x = x, y = y, color = bicc, group = run)) +
+  geom_line(size = 1) +
+  facet_grid(group~parameter, scales = "free") +
+  labs(title = "Normal Distributions by Parameter",
+       x = "Value",
+       y = "Density") +
+  theme_minimal() + 
+  color_bicc() + 
+  scale_x_log10()
+
+# Shrinkage for each parameter
+shrinkage %>% 
+  filter(run %in% runs_10) %>% 
+  left_join(distinct(tabestimates, run, bicc)) %>% 
+  ggplot(aes(factor(run), conditionalMode, fill = bicc)) + 
+  geom_col() + 
+  geom_hline(yintercept = 30, lty = "dashed") +
+  fill_bicc() + 
+  facet_wrap(~parameter) + 
+  labs(x = "Run", y = "Shrinkage (%)") 
+```
